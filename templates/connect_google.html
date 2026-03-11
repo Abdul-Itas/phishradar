@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishGuard — Connect Gmail</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #050a12;
+            --bg-card: #0a1628;
+            --border-color: #112240;
+            --border-glow: #1a3a6e;
+            --accent-blue: #00a8ff;
+            --accent-cyan: #00e5ff;
+            --accent-red: #ff2d55;
+            --accent-green: #00ff88;
+            --text-primary: #e8f0fe;
+            --text-secondary: #7a8fad;
+            --text-mono: #4a9eff;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Exo 2', sans-serif;
+            min-height: 100vh;
+        }
+        body::before {
+            content: '';
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(rgba(0,168,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,168,255,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none; z-index: 0;
+        }
+        body::after {
+            content: '';
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+            pointer-events: none; z-index: 0;
+        }
+        .container { position: relative; z-index: 1; }
+
+        .header {
+            background: linear-gradient(180deg, rgba(0,168,255,0.05) 0%, transparent 100%);
+            border-bottom: 1px solid var(--border-glow);
+            padding: 16px 32px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .logo-text { font-family: 'Rajdhani', sans-serif; font-size: 1.8rem; font-weight: 700; letter-spacing: 0.05em; }
+        .logo-text span { color: var(--accent-cyan); }
+        .logo-sub { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: var(--text-secondary); letter-spacing: 0.2em; }
+
+        .btn-back {
+            font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+            letter-spacing: 0.15em; color: var(--text-secondary);
+            background: transparent; border: 1px solid var(--border-color);
+            padding: 8px 16px; border-radius: 4px; cursor: pointer;
+            transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-back:hover { color: var(--text-primary); border-color: var(--border-glow); }
+
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 12px; overflow: hidden;
+        }
+
+        .permission-item {
+            display: flex; align-items: flex-start; gap: 14px;
+            padding: 14px 0; border-bottom: 1px solid rgba(17,34,64,0.6);
+        }
+        .permission-item:last-child { border-bottom: none; }
+
+        .perm-icon {
+            width: 36px; height: 36px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .btn-google {
+            font-family: 'Rajdhani', sans-serif; font-weight: 700;
+            font-size: 1rem; letter-spacing: 0.15em;
+            background: white; color: #333;
+            border: none; padding: 14px 24px; border-radius: 8px;
+            cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            width: 100%; text-decoration: none;
+        }
+        .btn-google:hover { background: #f5f5f5; box-shadow: 0 4px 20px rgba(255,255,255,0.15); transform: translateY(-1px); }
+
+        .step-item {
+            display: flex; align-items: center; gap: 12px; padding: 10px 0;
+        }
+        .step-num {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: rgba(0,168,255,0.1); border: 1px solid rgba(0,168,255,0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Share Tech Mono'; font-size: 0.7rem; color: var(--accent-blue);
+            flex-shrink: 0;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card { animation: fadeInUp 0.5s ease forwards; }
+        .card:nth-child(2) { animation-delay: 0.1s; }
+        .card:nth-child(3) { animation-delay: 0.2s; }
+
+        .notice-box {
+            background: rgba(0,168,255,0.04);
+            border: 1px solid rgba(0,168,255,0.15);
+            border-radius: 8px; padding: 14px 16px;
+            display: flex; gap: 12px; align-items: flex-start;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-glow); border-radius: 3px; }
+    </style>
+</head>
+<body>
+<div class="container mx-auto max-w-xl px-6 py-6">
+
+    <!-- Header -->
+    <header class="header rounded-lg mb-8" style="border-radius:8px;">
+        <div style="display:flex; align-items:center; gap:16px;">
+            <div style="padding:8px; background:rgba(0,168,255,0.1); border:1px solid rgba(0,168,255,0.3); border-radius:8px;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+            </div>
+            <div>
+                <div class="logo-text">Phish<span>Guard</span></div>
+                <div class="logo-sub">CONNECT GMAIL INBOX</div>
+            </div>
+        </div>
+        <a href="/" class="btn-back">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            BACK TO SOC
+        </a>
+    </header>
+
+    <!-- How it works -->
+    <div class="card" style="margin-bottom:16px; padding:24px;">
+        <div style="font-family:'Rajdhani'; font-size:0.8rem; font-weight:600; letter-spacing:0.2em; color:var(--text-secondary); text-transform:uppercase; margin-bottom:16px;">
+            How Auto-Scan Works
+        </div>
+        <div class="step-item">
+            <div class="step-num">1</div>
+            <div style="font-family:'Exo 2'; font-size:0.9rem; color:var(--text-primary);">Sign in with your Google account securely</div>
+        </div>
+        <div class="step-item">
+            <div class="step-num">2</div>
+            <div style="font-family:'Exo 2'; font-size:0.9rem; color:var(--text-primary);">PhishGuard reads your latest inbox emails</div>
+        </div>
+        <div class="step-item">
+            <div class="step-num">3</div>
+            <div style="font-family:'Exo 2'; font-size:0.9rem; color:var(--text-primary);">Each email is scanned and assigned a risk score</div>
+        </div>
+        <div class="step-item">
+            <div class="step-num">4</div>
+            <div style="font-family:'Exo 2'; font-size:0.9rem; color:var(--text-primary);">Results appear live in your SOC dashboard</div>
+        </div>
+    </div>
+
+    <!-- Permissions -->
+    <div class="card" style="margin-bottom:16px; padding:24px;">
+        <div style="font-family:'Rajdhani'; font-size:0.8rem; font-weight:600; letter-spacing:0.2em; color:var(--text-secondary); text-transform:uppercase; margin-bottom:16px;">
+            Permissions Required
+        </div>
+
+        <div class="permission-item">
+            <div class="perm-icon" style="background:rgba(0,255,136,0.08); border:1px solid rgba(0,255,136,0.2);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+            </div>
+            <div>
+                <div style="font-family:'Rajdhani'; font-weight:600; font-size:0.9rem; color:var(--text-primary);">Read Inbox Emails</div>
+                <div style="font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--text-secondary); letter-spacing:0.05em; margin-top:3px;">Used to scan subjects, senders, and body content for threats</div>
+            </div>
+        </div>
+
+        <div class="permission-item">
+            <div class="perm-icon" style="background:rgba(0,168,255,0.08); border:1px solid rgba(0,168,255,0.2);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+            </div>
+            <div>
+                <div style="font-family:'Rajdhani'; font-weight:600; font-size:0.9rem; color:var(--text-primary);">View Account Email Address</div>
+                <div style="font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--text-secondary); letter-spacing:0.05em; margin-top:3px;">Used to identify which inbox is being scanned</div>
+            </div>
+        </div>
+
+        <div class="permission-item">
+            <div class="perm-icon" style="background:rgba(255,45,85,0.08); border:1px solid rgba(255,45,85,0.2);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-red)" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                </svg>
+            </div>
+            <div>
+                <div style="font-family:'Rajdhani'; font-weight:600; font-size:0.9rem; color:var(--text-primary);">No Write Access</div>
+                <div style="font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--text-secondary); letter-spacing:0.05em; margin-top:3px;">PhishGuard cannot send, delete, or modify any emails</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Privacy notice -->
+    <div class="notice-box" style="margin-bottom:20px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2" style="flex-shrink:0; margin-top:2px;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div style="font-family:'Share Tech Mono'; font-size:0.68rem; color:var(--text-secondary); line-height:1.7; letter-spacing:0.03em;">
+            Your emails are analyzed locally and never stored on external servers.
+            OAuth tokens are session-only and expire when you close the browser.
+        </div>
+    </div>
+
+    <!-- Status messages -->
+    {% if status == 'not_configured' %}
+    <div style="margin-bottom:16px; padding:14px 16px; background:rgba(255,215,0,0.06); border:1px solid rgba(255,215,0,0.3); border-radius:8px; display:flex; gap:10px; align-items:flex-start;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffd700" stroke-width="2" style="flex-shrink:0; margin-top:2px;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        </svg>
+        <div style="font-family:'Share Tech Mono'; font-size:0.7rem; color:#ffd700; letter-spacing:0.05em; line-height:1.6;">
+            Google credentials not found in .env file.<br>
+            Make sure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set.
+        </div>
+    </div>
+    {% elif status == 'error' %}
+    <div style="margin-bottom:16px; padding:14px 16px; background:rgba(255,45,85,0.06); border:1px solid rgba(255,45,85,0.3); border-radius:8px; display:flex; gap:10px; align-items:flex-start;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-red)" stroke-width="2" style="flex-shrink:0; margin-top:2px;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div style="font-family:'Share Tech Mono'; font-size:0.7rem; color:var(--accent-red); letter-spacing:0.05em; line-height:1.6;">
+            Google login failed. Please try again.<br>
+            Make sure your redirect URI in Google Cloud Console is: http://127.0.0.1:5000/google-callback
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Google Sign In Button -->
+    <a href="{{ url_for('google_login') }}" class="btn-google">
+        <!-- Google "G" logo -->
+        <svg width="20" height="20" viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        CONTINUE WITH GOOGLE
+    </a>
+
+    <p style="text-align:center; font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--text-secondary); letter-spacing:0.1em; margin-top:16px;">
+        You will be redirected to Google's secure login page
+    </p>
+
+</div>
+</body>
+</html>

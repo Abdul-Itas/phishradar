@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishGuard S.O.C.</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #050a12;
+            --bg-secondary: #080f1c;
+            --bg-card: #0a1628;
+            --bg-card-hover: #0d1d36;
+            --border-color: #112240;
+            --border-glow: #1a3a6e;
+            --accent-blue: #00a8ff;
+            --accent-cyan: #00e5ff;
+            --accent-red: #ff2d55;
+            --accent-yellow: #ffd700;
+            --accent-green: #00ff88;
+            --text-primary: #e8f0fe;
+            --text-secondary: #7a8fad;
+            --text-mono: #4a9eff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Exo 2', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(rgba(0, 168, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 168, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Scanline overlay */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 0, 0, 0.08) 2px,
+                rgba(0, 0, 0, 0.08) 4px
+            );
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container { position: relative; z-index: 1; }
+
+        /* ─── HEADER ─── */
+        .header {
+            background: linear-gradient(180deg, rgba(0,168,255,0.05) 0%, transparent 100%);
+            border-bottom: 1px solid var(--border-glow);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-text {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: var(--text-primary);
+        }
+
+        .logo-text span { color: var(--accent-cyan); }
+
+        .logo-sub {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.2em;
+        }
+
+        /* Status badges */
+        .status-live {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--accent-green);
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            padding: 8px 16px;
+            border-radius: 4px;
+            letter-spacing: 0.15em;
+        }
+
+        .pulse-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        /* ─── METRIC CARDS ─── */
+        .metric-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+        }
+
+        .metric-card.blue::before { background: linear-gradient(90deg, transparent, var(--accent-blue), transparent); }
+        .metric-card.red::before { background: linear-gradient(90deg, transparent, var(--accent-red), transparent); }
+        .metric-card.yellow::before { background: linear-gradient(90deg, transparent, var(--accent-yellow), transparent); }
+        .metric-card.green::before { background: linear-gradient(90deg, transparent, var(--accent-green), transparent); }
+
+        .metric-label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .metric-card.blue .metric-value { color: var(--accent-blue); }
+        .metric-card.red .metric-value { color: var(--accent-red); }
+        .metric-card.yellow .metric-value { color: var(--accent-yellow); }
+        .metric-card.green .metric-value { color: var(--accent-green); }
+
+        /* ─── PANEL CARDS ─── */
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 168, 255, 0.02);
+        }
+
+        .panel-title {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+        }
+
+        /* ─── DEFCON INDICATOR ─── */
+        .defcon-bar {
+            display: flex;
+            gap: 4px;
+            padding: 20px 24px;
+        }
+
+        .defcon-level {
+            flex: 1;
+            height: 36px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.65rem;
+            font-weight: bold;
+            letter-spacing: 0.1em;
+            border: 1px solid transparent;
+            opacity: 0.25;
+            transition: all 0.3s;
+        }
+
+        .defcon-level.active { opacity: 1; }
+
+        .defcon-1 { background: rgba(255,45,85,0.15); border-color: var(--accent-red); color: var(--accent-red); }
+        .defcon-2 { background: rgba(255,100,0,0.15); border-color: #ff6400; color: #ff6400; }
+        .defcon-3 { background: rgba(255,215,0,0.15); border-color: var(--accent-yellow); color: var(--accent-yellow); }
+        .defcon-4 { background: rgba(0,255,136,0.1); border-color: var(--accent-green); color: var(--accent-green); }
+        .defcon-5 { background: rgba(0,255,136,0.1); border-color: var(--accent-green); color: var(--accent-green); }
+
+        .defcon-1.active { box-shadow: 0 0 20px rgba(255,45,85,0.4); animation: defcon-pulse 1.5s infinite; }
+        @keyframes defcon-pulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(255,45,85,0.4); }
+            50% { box-shadow: 0 0 40px rgba(255,45,85,0.8); }
+        }
+
+        /* ─── TABLE ─── */
+        .email-table { width: 100%; border-collapse: collapse; }
+
+        .email-table thead tr {
+            background: rgba(0,0,0,0.3);
+        }
+
+        .email-table thead th {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            padding: 14px 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .email-table tbody tr.email-row {
+            border-bottom: 1px solid rgba(17, 34, 64, 0.5);
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+
+        .email-table tbody tr.email-row:hover { background: var(--bg-card-hover); }
+
+        .email-table td {
+            padding: 16px 20px;
+            vertical-align: middle;
+        }
+
+        .analysis-row td {
+            padding: 0 20px 16px 20px;
+        }
+
+        .analysis-content {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            padding: 10px 14px;
+            border-radius: 4px;
+            border-left: 3px solid;
+            background: rgba(0,0,0,0.2);
+            letter-spacing: 0.03em;
+            line-height: 1.6;
+        }
+
+        /* ─── RISK SCORE BADGE ─── */
+        .score-ring {
+            width: 52px; height: 52px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            border: 2px solid;
+            position: relative;
+        }
+
+        .score-ring.danger {
+            color: var(--accent-red);
+            border-color: var(--accent-red);
+            background: rgba(255, 45, 85, 0.08);
+            box-shadow: 0 0 20px rgba(255, 45, 85, 0.25), inset 0 0 10px rgba(255, 45, 85, 0.05);
+        }
+
+        .score-ring.warning {
+            color: var(--accent-yellow);
+            border-color: var(--accent-yellow);
+            background: rgba(255, 215, 0, 0.08);
+        }
+
+        .score-ring.safe {
+            color: var(--accent-green);
+            border-color: var(--accent-green);
+            background: rgba(0, 255, 136, 0.08);
+        }
+
+        /* ─── STATUS BADGE ─── */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 3px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            border: 1px solid;
+        }
+
+        .status-badge.danger {
+            color: var(--accent-red);
+            border-color: rgba(255,45,85,0.3);
+            background: rgba(255,45,85,0.08);
+        }
+
+        .status-badge.warning {
+            color: var(--accent-yellow);
+            border-color: rgba(255,215,0,0.3);
+            background: rgba(255,215,0,0.08);
+        }
+
+        .status-badge.safe-badge {
+            color: var(--accent-green);
+            border-color: rgba(0,255,136,0.3);
+            background: rgba(0,255,136,0.08);
+        }
+
+        .badge-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+        }
+
+        .danger .badge-dot { background: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); animation: pulse 1.5s infinite; }
+        .warning .badge-dot { background: var(--accent-yellow); }
+        .safe-badge .badge-dot { background: var(--accent-green); }
+
+        /* ─── REFRESH BUTTON ─── */
+        .btn-refresh {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            color: var(--accent-cyan);
+            background: rgba(0, 229, 255, 0.05);
+            border: 1px solid rgba(0, 229, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-refresh:hover {
+            background: rgba(0, 229, 255, 0.1);
+            border-color: rgba(0, 229, 255, 0.5);
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.15);
+        }
+
+        /* ─── SENDER TEXT ─── */
+        .sender-name {
+            font-family: 'Exo 2', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            max-width: 220px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .subject-text {
+            font-family: 'Exo 2', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        /* ─── EMPTY STATE ─── */
+        .empty-state {
+            padding: 60px 20px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.8rem;
+            letter-spacing: 0.1em;
+        }
+
+        /* ─── CHART AREA ─── */
+        #chartWrap {
+            position: relative;
+            width: 100%;
+            padding: 20px 24px;
+        }
+
+        /* ─── SCROLLBAR ─── */
+        /* Loading skeleton */
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-card) 25%, var(--border-color) 50%, var(--bg-card) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+            border-radius: 4px;
+        }
+        @keyframes shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        #loadingOverlay {
+            position: fixed; inset: 0; z-index: 999;
+            background: var(--bg-primary);
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column; gap: 16px;
+            transition: opacity 0.4s ease;
+        }
+        #loadingOverlay.hidden { opacity: 0; pointer-events: none; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-glow); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-blue); }
+
+        /* ─── GLITCH HEADER EFFECT ─── */
+        @keyframes glitch {
+            0%, 95%, 100% { text-shadow: none; }
+            96% { text-shadow: -2px 0 var(--accent-red), 2px 0 var(--accent-cyan); }
+            97% { text-shadow: 2px 0 var(--accent-red), -2px 0 var(--accent-cyan); }
+            98% { text-shadow: none; }
+        }
+
+        .logo-text { animation: glitch 8s infinite; }
+
+        /* ─── TIMESTAMP ─── */
+        .timestamp {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.1em;
+        }
+
+        /* Fade in animation for rows */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .email-row, .analysis-row {
+            animation: fadeInUp 0.4s ease forwards;
+        }
+
+        /* Stagger delays */
+        .email-row:nth-child(4n+1), .analysis-row:nth-child(4n+2) { animation-delay: 0.05s; }
+        .email-row:nth-child(4n+3), .analysis-row:nth-child(4n+4) { animation-delay: 0.1s; }
+        .email-row:nth-child(4n+5), .analysis-row:nth-child(4n+6) { animation-delay: 0.15s; }
+        .email-row:nth-child(4n+7), .analysis-row:nth-child(4n+8) { animation-delay: 0.2s; }
+        .email-row:nth-child(4n+9), .analysis-row:nth-child(4n+10) { animation-delay: 0.25s; }
+    </style>
+</head>
+<body>
+<div class="container mx-auto max-w-screen-xl px-6 py-6">
+
+    <!-- ═══════════════ HEADER ═══════════════ -->
+    <header class="header rounded-lg mb-6" style="border-radius:8px;">
+        <div style="display:flex; align-items:center; gap:16px;">
+            <div style="padding:10px; background:rgba(0,168,255,0.1); border:1px solid rgba(0,168,255,0.3); border-radius:8px;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+            </div>
+            <div>
+                <div class="logo-text">Phish<span>Guard</span></div>
+                <div class="logo-sub">SECURITY OPERATIONS CENTER &nbsp;|&nbsp; V2.0</div>
+            </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:12px;">
+            <div class="timestamp" id="clockDisplay"></div>
+            {% if connected_email %}
+            <div style="display:flex; align-items:center; gap:8px; background:rgba(0,255,136,0.05); border:1px solid rgba(0,255,136,0.2); padding:8px 14px; border-radius:4px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+                <span style="font-family:'Share Tech Mono'; font-size:0.7rem; color:var(--accent-green); letter-spacing:0.05em;">{{ connected_email }}</span>
+                <a href="/logout" style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--text-secondary); letter-spacing:0.1em; text-decoration:none; margin-left:6px; padding:2px 8px; border:1px solid rgba(255,255,255,0.1); border-radius:3px;">DISCONNECT</a>
+            </div>
+            {% else %}
+            <div class="status-live">
+                <div class="pulse-dot"></div>
+                SYSTEM ONLINE
+            </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- ═══════════════ JINJA STAT CALC ═══════════════ -->
+    {% set counts = namespace(safe=0, suspicious=0, phishing=0) %}
+    {% for email in emails %}
+        {% if email.risk_score >= 70 %}{% set counts.phishing = counts.phishing + 1 %}
+        {% elif email.risk_score >= 40 %}{% set counts.suspicious = counts.suspicious + 1 %}
+        {% else %}{% set counts.safe = counts.safe + 1 %}
+        {% endif %}
+    {% endfor %}
+
+    <!-- ═══════════════ METRIC ROW ═══════════════ -->
+    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:16px; margin-bottom:24px;">
+        <div class="metric-card blue">
+            <div class="metric-label">Emails Scanned</div>
+            <div class="metric-value">{{ emails|length }}</div>
+        </div>
+        <div class="metric-card red">
+            <div class="metric-label">Phishing Detected</div>
+            <div class="metric-value">{{ counts.phishing }}</div>
+        </div>
+        <div class="metric-card yellow">
+            <div class="metric-label">Suspicious</div>
+            <div class="metric-value">{{ counts.suspicious }}</div>
+        </div>
+        <div class="metric-card green">
+            <div class="metric-label">Safe</div>
+            <div class="metric-value">{{ counts.safe }}</div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ MAIN GRID ═══════════════ -->
+    <div style="display:grid; grid-template-columns: 300px 1fr; gap:20px; align-items:start;">
+
+        <!-- ── LEFT PANEL ── -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+
+            <!-- Chart Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Threat Distribution</span>
+                </div>
+                <div id="chartWrap">
+                    <canvas id="threatChart" height="220"></canvas>
+                </div>
+            </div>
+
+            <!-- DEFCON Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Threat Level</span>
+                </div>
+                <div class="defcon-bar">
+                    <div class="defcon-level defcon-1 {% if counts.phishing > 0 %}active{% endif %}">D1</div>
+                    <div class="defcon-level defcon-2">D2</div>
+                    <div class="defcon-level defcon-3 {% if counts.suspicious > 0 and counts.phishing == 0 %}active{% endif %}">D3</div>
+                    <div class="defcon-level defcon-4">D4</div>
+                    <div class="defcon-level defcon-5 {% if counts.phishing == 0 and counts.suspicious == 0 %}active{% endif %}">D5</div>
+                </div>
+                <div style="padding: 0 24px 20px; font-family: 'Share Tech Mono'; font-size: 0.7rem; letter-spacing:0.1em; text-align:center;">
+                    {% if counts.phishing > 0 %}
+                        <span style="color:var(--accent-red);">⚠ CRITICAL — PHISHING ACTIVE</span>
+                    {% elif counts.suspicious > 0 %}
+                        <span style="color:var(--accent-yellow);">⚡ ELEVATED — SUSPICIOUS ACTIVITY</span>
+                    {% else %}
+                        <span style="color:var(--accent-green);">✓ NORMAL — ALL CLEAR</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Privacy Score Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">⬡ Inbox Privacy Score</span>
+                </div>
+                <div style="padding:16px 20px 20px;">
+                    {% set total = emails|length %}
+                    {% set threats = counts.phishing + counts.suspicious %}
+                    {% set privacy_score = [0, (100 - (counts.phishing * 25) - (counts.suspicious * 10)) | int] | max %}
+                    {% set privacy_score = [privacy_score, 100] | min %}
+
+                    <!-- Big score ring -->
+                    <div style="display:flex; align-items:center; gap:16px; margin-bottom:14px;">
+                        <div style="position:relative; width:72px; height:72px; flex-shrink:0;">
+                            <svg width="72" height="72" viewBox="0 0 72 72">
+                                <circle cx="36" cy="36" r="30" fill="none" stroke="var(--border-color)" stroke-width="6"/>
+                                <circle cx="36" cy="36" r="30" fill="none"
+                                    stroke="{% if privacy_score >= 70 %}var(--accent-green){% elif privacy_score >= 40 %}var(--accent-yellow){% else %}var(--accent-red){% endif %}"
+                                    stroke-width="6"
+                                    stroke-dasharray="188.5"
+                                    stroke-dashoffset="{{ 188.5 - (188.5 * privacy_score / 100) }}"
+                                    stroke-linecap="round"
+                                    transform="rotate(-90 36 36)"/>
+                            </svg>
+                            <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center;">
+                                <div style="font-family:'Rajdhani'; font-size:1.3rem; font-weight:700; color:{% if privacy_score >= 70 %}var(--accent-green){% elif privacy_score >= 40 %}var(--accent-yellow){% else %}var(--accent-red){% endif %}; line-height:1;">{{ privacy_score }}</div>
+                                <div style="font-family:'Share Tech Mono'; font-size:0.45rem; color:var(--text-secondary); letter-spacing:0.05em;">/100</div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-family:'Rajdhani'; font-size:1rem; font-weight:700; color:{% if privacy_score >= 70 %}var(--accent-green){% elif privacy_score >= 40 %}var(--accent-yellow){% else %}var(--accent-red){% endif %}; margin-bottom:3px;">
+                                {% if privacy_score >= 80 %}INBOX SECURE
+                                {% elif privacy_score >= 60 %}NEEDS ATTENTION
+                                {% elif privacy_score >= 40 %}AT RISK
+                                {% else %}CRITICAL RISK{% endif %}
+                            </div>
+                            <div style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--text-secondary); letter-spacing:0.05em; line-height:1.6;">
+                                {{ total }} email{{ 's' if total != 1 else '' }} scanned<br>
+                                {{ threats }} threat{{ 's' if threats != 1 else '' }} detected
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Issue breakdown -->
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        {% if counts.phishing > 0 %}
+                        <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,45,85,0.06); border:1px solid rgba(255,45,85,0.15); border-radius:5px; padding:6px 10px;">
+                            <span style="font-family:'Share Tech Mono'; font-size:0.62rem; color:var(--accent-red);">⚠ Phishing attempts</span>
+                            <span style="font-family:'Rajdhani'; font-size:0.9rem; font-weight:700; color:var(--accent-red);">{{ counts.phishing }}</span>
+                        </div>
+                        {% endif %}
+                        {% if counts.suspicious > 0 %}
+                        <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,215,0,0.06); border:1px solid rgba(255,215,0,0.15); border-radius:5px; padding:6px 10px;">
+                            <span style="font-family:'Share Tech Mono'; font-size:0.62rem; color:var(--accent-yellow);">⚡ Suspicious senders</span>
+                            <span style="font-family:'Rajdhani'; font-size:0.9rem; font-weight:700; color:var(--accent-yellow);">{{ counts.suspicious }}</span>
+                        </div>
+                        {% endif %}
+                        {% if counts.safe > 0 %}
+                        <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(0,255,136,0.04); border:1px solid rgba(0,255,136,0.12); border-radius:5px; padding:6px 10px;">
+                            <span style="font-family:'Share Tech Mono'; font-size:0.62rem; color:var(--accent-green);">✓ Verified safe</span>
+                            <span style="font-family:'Rajdhani'; font-size:0.9rem; font-weight:700; color:var(--accent-green);">{{ counts.safe }}</span>
+                        </div>
+                        {% endif %}
+                        {% if total == 0 %}
+                        <div style="font-family:'Share Tech Mono'; font-size:0.62rem; color:var(--text-secondary); text-align:center; padding:8px;">Connect Gmail to calculate score</div>
+                        {% endif %}
+                    </div>
+
+                    {% if threats > 0 %}
+                    <div style="margin-top:10px; font-family:'Share Tech Mono'; font-size:0.58rem; color:var(--text-secondary); letter-spacing:0.08em; line-height:1.6; border-top:1px solid var(--border-color); padding-top:10px;">
+                        Score deducted: -{{ counts.phishing * 25 }} for phishing, -{{ counts.suspicious * 10 }} for suspicious
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- URL Scanner Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">⬡ URL Scanner</span>
+                </div>
+                <div style="padding:16px;">
+                    <div style="display:flex; gap:8px; margin-bottom:12px;">
+                        <input type="text" id="urlInput" placeholder="https://suspicious-link.com"
+                            style="flex:1; background:rgba(0,0,0,0.3); border:1px solid var(--border-color); border-radius:6px; color:var(--text-primary); font-family:'Share Tech Mono'; font-size:0.7rem; padding:8px 10px; outline:none; transition:border-color 0.2s;"
+                            onfocus="this.style.borderColor='var(--accent-blue)'"
+                            onblur="this.style.borderColor='var(--border-color)'"
+                            onkeydown="if(event.key==='Enter') scanUrl()"/>
+                        <button onclick="scanUrl()" style="font-family:'Share Tech Mono'; font-size:0.65rem; letter-spacing:0.1em; color:var(--accent-cyan); background:rgba(0,229,255,0.07); border:1px solid rgba(0,229,255,0.2); padding:8px 12px; border-radius:6px; cursor:pointer; transition:all 0.2s; white-space:nowrap;" onmouseover="this.style.background='rgba(0,229,255,0.15)'" onmouseout="this.style.background='rgba(0,229,255,0.07)'">SCAN</button>
+                    </div>
+                    <div id="urlResult" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- Scan Mode Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Scan Mode</span>
+                </div>
+                <div style="padding:20px; display:flex; flex-direction:column; gap:10px;">
+                    <a href="/upload" style="text-decoration:none;">
+                        <div style="padding:14px 16px; background:rgba(0,168,255,0.06); border:1px solid rgba(0,168,255,0.2); border-radius:6px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:12px;" onmouseover="this.style.background='rgba(0,168,255,0.12)'" onmouseout="this.style.background='rgba(0,168,255,0.06)'">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                            </svg>
+                            <div>
+                                <div style="font-family:'Rajdhani'; font-weight:600; font-size:0.9rem; color:var(--accent-blue);">Upload Email</div>
+                                <div style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--text-secondary); letter-spacing:0.1em;">Paste or upload .eml file</div>
+                            </div>
+                        </div>
+                    </a>
+                    <a href="/connect-google" style="text-decoration:none;">
+                        <div style="padding:14px 16px; background:rgba(0,229,255,0.04); border:1px solid rgba(0,229,255,0.15); border-radius:6px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:12px;" onmouseover="this.style.background='rgba(0,229,255,0.1)'" onmouseout="this.style.background='rgba(0,229,255,0.04)'">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                            <div>
+                                <div style="font-family:'Rajdhani'; font-weight:600; font-size:0.9rem; color:var(--accent-cyan);">Connect Gmail</div>
+                                <div style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--text-secondary); letter-spacing:0.1em;">Auto-scan inbox via OAuth</div>
+                            </div>
+                        </div>
+                    </a>
+                    <a href="/simulation" style="text-decoration:none;">
+                        <div style="padding:14px 16px; background:rgba(167,139,250,0.04); border:1px solid rgba(167,139,250,0.15); border-radius:6px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:12px;" onmouseover="this.style.background='rgba(167,139,250,0.1)'" onmouseout="this.style.background='rgba(167,139,250,0.04)'">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                            </svg>
+                            <div>
+                                <div style="font-family:'Rajdhani'; font-weight:600; font-size:0.9rem; color:var(--accent-purple);">Simulation Lab</div>
+                                <div style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--text-secondary); letter-spacing:0.1em;">Train to spot phishing attacks</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ── RIGHT PANEL (Live Feed) ── -->
+        <div class="panel">
+            {% if counts.phishing > 0 %}
+            <div style="background:rgba(255,45,85,0.08); border-bottom:1px solid rgba(255,45,85,0.2); padding:12px 24px; display:flex; align-items:center; gap:10px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-red)" stroke-width="2" style="flex-shrink:0;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                </svg>
+                <span style="font-family:'Share Tech Mono'; font-size:0.7rem; color:var(--accent-red); letter-spacing:0.08em; flex:1;">
+                    ⚠ {{ counts.phishing }} PHISHING THREAT{{ 's' if counts.phishing > 1 else '' }} DETECTED — Alert email sent automatically
+                </span>
+                <span style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--text-secondary); letter-spacing:0.1em; animation: pulse 2s infinite;">ALERTS ACTIVE</span>
+            </div>
+            {% endif %}
+            <div class="panel-header">
+                <span class="panel-title">⬡ Live Inbox Analysis Feed</span>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <!-- PDF Report -->
+                    <a href="/report" target="_blank" style="text-decoration:none;">
+                        <button class="btn-refresh" style="color:#ff6b9d; border-color:rgba(255,107,157,0.2); background:rgba(255,107,157,0.05);" onmouseover="this.style.background='rgba(255,107,157,0.12)'" onmouseout="this.style.background='rgba(255,107,157,0.05)'">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            PDF REPORT
+                        </button>
+                    </a>
+                    <!-- Manual refresh only -->
+                    <button class="btn-refresh" onclick="window.location.reload();">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        REFRESH FEED
+                    </button>
+                </div>
+            </div>
+
+            <div style="overflow-x:auto;">
+                <table class="email-table">
+                    <thead>
+                        <tr>
+                            <th style="width:70px;">Score</th>
+                            <th>Sender</th>
+                            <th>Subject</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% if emails %}
+                        {% for email in emails %}
+                        <!-- Email Row -->
+                        <tr class="email-row">
+                            <td>
+                                {% if email.risk_score >= 70 %}
+                                    <div class="score-ring danger">{{ email.risk_score }}</div>
+                                {% elif email.risk_score >= 40 %}
+                                    <div class="score-ring warning">{{ email.risk_score }}</div>
+                                {% else %}
+                                    <div class="score-ring safe">{{ email.risk_score }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="sender-name" title="{{ email.sender }}">{{ email.sender }}</div>
+                            </td>
+                            <td>
+                                <div class="subject-text">{{ email.subject }}</div>
+                            </td>
+                            <td>
+                                {% if email.risk_score >= 70 %}
+                                    <span class="status-badge danger"><span class="badge-dot"></span>PHISHING</span>
+                                {% elif email.risk_score >= 40 %}
+                                    <span class="status-badge warning"><span class="badge-dot"></span>SUSPICIOUS</span>
+                                {% else %}
+                                    <span class="status-badge safe-badge"><span class="badge-dot"></span>SAFE</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <!-- Analysis Row — Explainability Panel -->
+                        <tr class="analysis-row">
+                            <td colspan="4">
+                                {% set ac = 'var(--accent-red)' if email.risk_score >= 70 else ('var(--accent-yellow)' if email.risk_score >= 40 else 'var(--accent-green)') %}
+                                {% set parts = email.explanation.split(' | ') %}
+                                <div class="analysis-content" style="border-left-color: {% if email.risk_score >= 70 %}var(--accent-red){% elif email.risk_score >= 40 %}var(--accent-yellow){% else %}var(--accent-green){% endif %}; padding:14px 18px;">
+
+                                    <!-- Header row: engine badge + verdict summary -->
+                                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                                        <div style="display:flex; align-items:center; gap:8px;">
+                                            {% if email.engine is defined and email.engine == 'claude-ai' %}
+                                            <span style="font-family:'Share Tech Mono'; font-size:0.6rem; letter-spacing:0.15em; color:#a78bfa; background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.3); padding:2px 8px; border-radius:3px;">✦ CLAUDE AI</span>
+                                            {% else %}
+                                            <span style="font-family:'Share Tech Mono'; font-size:0.6rem; letter-spacing:0.15em; color:var(--text-mono); background:rgba(74,158,255,0.1); border:1px solid rgba(74,158,255,0.2); padding:2px 8px; border-radius:3px;">RULE ENGINE</span>
+                                            {% endif %}
+                                            <span style="font-family:'Exo 2'; font-size:0.78rem; font-weight:600; color:var(--text-primary);">{{ parts[0] if parts else 'Analysis complete' }}</span>
+                                        </div>
+                                        <!-- Score breakdown mini-bar -->
+                                        <div style="display:flex; align-items:center; gap:6px;">
+                                            <span style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--text-secondary); letter-spacing:0.1em;">RISK</span>
+                                            <div style="width:80px; height:5px; background:var(--border-color); border-radius:3px; overflow:hidden;">
+                                                <div style="width:{{ email.risk_score }}%; height:100%; background:{% if email.risk_score >= 70 %}var(--accent-red){% elif email.risk_score >= 40 %}var(--accent-yellow){% else %}var(--accent-green){% endif %}; border-radius:3px; transition:width 0.6s ease;"></div>
+                                            </div>
+                                            <span style="font-family:'Share Tech Mono'; font-size:0.65rem; font-weight:700; color:{% if email.risk_score >= 70 %}var(--accent-red){% elif email.risk_score >= 40 %}var(--accent-yellow){% else %}var(--accent-green){% endif %};">{{ email.risk_score }}%</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Threat indicators grid -->
+                                    {% if parts|length > 1 %}
+                                    <div style="margin-bottom:12px;">
+                                        <div style="font-family:'Share Tech Mono'; font-size:0.58rem; color:var(--text-secondary); letter-spacing:0.15em; margin-bottom:6px;">THREAT INDICATORS</div>
+                                        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                                            {% for part in parts %}
+                                            {% if not loop.first %}
+                                            <div style="display:flex; align-items:center; gap:5px; background:rgba(0,0,0,0.2); border:1px solid {% if email.risk_score >= 70 %}rgba(255,45,85,0.2){% elif email.risk_score >= 40 %}rgba(255,215,0,0.2){% else %}rgba(0,255,136,0.2){% endif %}; border-radius:4px; padding:4px 10px;">
+                                                <span style="color:{% if email.risk_score >= 70 %}var(--accent-red){% elif email.risk_score >= 40 %}var(--accent-yellow){% else %}var(--accent-green){% endif %}; font-size:0.7rem;">⚠</span>
+                                                <span style="font-family:'Exo 2'; font-size:0.68rem; color:var(--text-secondary);">{{ part }}</span>
+                                            </div>
+                                            {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+
+                                    <!-- Recommended Actions -->
+                                    {% if email.risk_score >= 40 %}
+                                    <div style="background:rgba(0,0,0,0.15); border-radius:6px; padding:10px 12px;">
+                                        <div style="font-family:'Share Tech Mono'; font-size:0.58rem; color:var(--text-secondary); letter-spacing:0.15em; margin-bottom:6px;">RECOMMENDED ACTIONS</div>
+                                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:3px;">
+                                            {% if email.risk_score >= 70 %}
+                                            <div style="font-family:'Exo 2'; font-size:0.68rem; color:var(--accent-red);">→ Do NOT click any links</div>
+                                            <div style="font-family:'Exo 2'; font-size:0.68rem; color:var(--accent-red);">→ Do NOT download attachments</div>
+                                            <div style="font-family:'Exo 2'; font-size:0.68rem; color:var(--text-secondary);">→ Report to your email provider</div>
+                                            <div style="font-family:'Exo 2'; font-size:0.68rem; color:var(--text-secondary);">→ Delete the email immediately</div>
+                                            {% else %}
+                                            <div style="font-family:'Exo 2'; font-size:0.68rem; color:var(--accent-yellow);">→ Verify sender before replying</div>
+                                            <div style="font-family:'Exo 2'; font-size:0.68rem; color:var(--accent-yellow);">→ Do not click unexpected links</div>
+                                            <div style="font-family:'Exo 2'; font-size:0.68rem; color:var(--text-secondary);">→ Contact sender via other channel</div>
+                                            <div style="font-family:'Exo 2'; font-size:0.68rem; color:var(--text-secondary);">→ Monitor for follow-up attempts</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <div style="font-family:'Exo 2'; font-size:0.68rem; color:var(--accent-green);">✓ No immediate action required — email appears legitimate</div>
+                                    {% endif %}
+
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="4">
+                                <div class="empty-state">
+                                    <div style="font-size:2rem; margin-bottom:12px; opacity:0.3;">⬡</div>
+                                    <div>NO EMAILS FOUND — CONNECT INBOX OR UPLOAD EMAIL TO BEGIN SCAN</div>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Chart.js + Clock Script -->
+<script>
+    // ── Hide loading overlay once page is ready ────────────────
+    (function() {
+        const overlay = document.getElementById('loadingOverlay');
+        const bar     = document.getElementById('loadingBar');
+        const msg     = document.getElementById('loadingMsg');
+        if (!overlay) return;
+        // Animate bar while loading
+        let pct = 0;
+        const tick = setInterval(() => {
+            pct = Math.min(pct + (Math.random() * 18), 85);
+            bar.style.width = pct + '%';
+        }, 180);
+        // Hide once DOM + styles are painted
+        window.addEventListener('load', () => {
+            clearInterval(tick);
+            bar.style.width = '100%';
+            msg.textContent = 'READY';
+            setTimeout(() => overlay.classList.add('hidden'), 300);
+            setTimeout(() => overlay.style.display = 'none', 750);
+        });
+    })();
+
+    // ── Live clock ──────────────────────────────────────────────
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('clockDisplay').textContent =
+            now.toUTCString().replace('GMT', 'UTC');
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // Chart
+    document.addEventListener('DOMContentLoaded', function () {
+        const ctx = document.getElementById('threatChart').getContext('2d');
+        const safe = {{ counts.safe }};
+        const suspicious = {{ counts.suspicious }};
+        const phishing = {{ counts.phishing }};
+        const total = safe + suspicious + phishing;
+
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: total > 0 ? ['Safe', 'Suspicious', 'Phishing'] : ['No Data'],
+                datasets: [{
+                    data: total > 0 ? [safe, suspicious, phishing] : [1],
+                    backgroundColor: total > 0
+                        ? ['#00ff88', '#ffd700', '#ff2d55']
+                        : ['#1a3a6e'],
+                    borderColor: '#0a1628',
+                    borderWidth: 5,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                cutout: '72%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#7a8fad',
+                            padding: 16,
+                            font: { family: "'Share Tech Mono'", size: 11 },
+                            usePointStyle: true,
+                            pointStyleWidth: 8
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#0a1628',
+                        borderColor: '#1a3a6e',
+                        borderWidth: 1,
+                        titleColor: '#e8f0fe',
+                        bodyColor: '#7a8fad',
+                        titleFont: { family: "'Rajdhani'", size: 13 },
+                        bodyFont: { family: "'Share Tech Mono'", size: 11 },
+                        callbacks: {
+                            label: ctx => total === 0
+                                ? ' No data yet'
+                                : ` ${ctx.label}: ${ctx.parsed} emails`
+                        }
+                    }
+                }
+            }
+        });    });
+
+    // ── URL Scanner ──────────────────────────────────────────────
+    async function scanUrl() {
+        const input = document.getElementById('urlInput');
+        const result = document.getElementById('urlResult');
+        const url = input.value.trim();
+        if (!url) return;
+
+        result.style.display = 'block';
+        result.innerHTML = "<div style=\"font-family:'Share Tech Mono';font-size:0.65rem;color:var(--text-secondary);letter-spacing:0.1em;padding:8px 0;\">Scanning...</div>";
+
+        try {
+            const resp = await fetch('/scan-url', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ url: url })
+            });
+            const data = await resp.json();
+
+            const scoreColor = data.risk_score >= 70 ? 'var(--accent-red)' :
+                               data.risk_score >= 40 ? 'var(--accent-yellow)' : 'var(--accent-green)';
+
+            let flagsHtml = '';
+            if (data.flags) {
+                data.flags.forEach(function(f) {
+                    const c = (f.severity === 'CRITICAL' || f.severity === 'HIGH') ? 'var(--accent-red)' :
+                              f.severity === 'MEDIUM' ? 'var(--accent-yellow)' :
+                              f.severity === 'INFO'   ? 'var(--text-mono)' : 'var(--accent-green)';
+                    flagsHtml += "<div style=\"font-family:'Share Tech Mono';font-size:0.62rem;color:" + c + ";padding:3px 0;line-height:1.5;\">&rsaquo; " + f.message + "</div>";
+                });
+            }
+
+            const resolved = (data.final_url && data.final_url !== data.url)
+                ? "<div style=\"font-family:'Share Tech Mono';font-size:0.6rem;color:var(--text-secondary);margin-top:4px;word-break:break-all;\">&rarr; " + data.final_url + "</div>"
+                : '';
+
+            result.innerHTML =
+                "<div style=\"background:rgba(0,0,0,0.2);border-left:3px solid " + scoreColor + ";border-radius:4px;padding:10px 12px;margin-bottom:8px;\">" +
+                    "<div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;\">" +
+                        "<span style=\"font-family:'Rajdhani';font-size:1.1rem;font-weight:700;color:" + scoreColor + ";\">" + data.verdict + "</span>" +
+                        "<span style=\"font-family:'Share Tech Mono';font-size:0.65rem;color:" + scoreColor + ";background:rgba(0,0,0,0.3);padding:2px 8px;border-radius:3px;\">" + data.risk_score + "% RISK</span>" +
+                    "</div>" +
+                    "<div style=\"font-family:'Share Tech Mono';font-size:0.62rem;color:var(--text-secondary);word-break:break-all;\">" + data.domain + "</div>" +
+                    resolved +
+                "</div>" +
+                "<div>" + flagsHtml + "</div>";
+
+        } catch(e) {
+            result.innerHTML = "<div style=\"font-family:'Share Tech Mono';font-size:0.65rem;color:var(--accent-red);\">Scan failed: " + e.message + "</div>";
+        }
+    }
+</script>
+</body>
+</html>

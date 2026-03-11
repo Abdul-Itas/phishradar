@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishGuard — Upload Email</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #050a12;
+            --bg-card: #0a1628;
+            --bg-card-hover: #0d1d36;
+            --border-color: #112240;
+            --border-glow: #1a3a6e;
+            --accent-blue: #00a8ff;
+            --accent-cyan: #00e5ff;
+            --accent-red: #ff2d55;
+            --accent-yellow: #ffd700;
+            --accent-green: #00ff88;
+            --text-primary: #e8f0fe;
+            --text-secondary: #7a8fad;
+            --text-mono: #4a9eff;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Exo 2', sans-serif;
+            min-height: 100vh;
+        }
+        body::before {
+            content: '';
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(rgba(0,168,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,168,255,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none; z-index: 0;
+        }
+        body::after {
+            content: '';
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+            pointer-events: none; z-index: 0;
+        }
+        .container { position: relative; z-index: 1; }
+
+        .header {
+            background: linear-gradient(180deg, rgba(0,168,255,0.05) 0%, transparent 100%);
+            border-bottom: 1px solid var(--border-glow);
+            padding: 16px 32px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .logo-text { font-family: 'Rajdhani', sans-serif; font-size: 1.8rem; font-weight: 700; letter-spacing: 0.05em; }
+        .logo-text span { color: var(--accent-cyan); }
+        .logo-sub { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: var(--text-secondary); letter-spacing: 0.2em; }
+
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px; overflow: hidden;
+        }
+        .panel-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(0,168,255,0.02);
+        }
+        .panel-title {
+            font-family: 'Rajdhani', sans-serif; font-size: 0.85rem; font-weight: 600;
+            letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-secondary);
+        }
+
+        .tab-btn {
+            font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+            letter-spacing: 0.15em; padding: 10px 24px; border: 1px solid var(--border-color);
+            background: transparent; color: var(--text-secondary); cursor: pointer;
+            transition: all 0.2s; border-radius: 4px;
+        }
+        .tab-btn.active {
+            background: rgba(0,168,255,0.1); border-color: var(--accent-blue);
+            color: var(--accent-blue); box-shadow: 0 0 12px rgba(0,168,255,0.15);
+        }
+        .tab-btn:hover:not(.active) { color: var(--text-primary); border-color: var(--border-glow); }
+
+        textarea {
+            width: 100%; min-height: 320px;
+            background: rgba(0,0,0,0.3); border: 1px solid var(--border-color);
+            border-radius: 6px; color: var(--text-primary);
+            font-family: 'Share Tech Mono', monospace; font-size: 0.8rem;
+            line-height: 1.7; padding: 16px; resize: vertical;
+            transition: border-color 0.2s; outline: none;
+        }
+        textarea:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 2px rgba(0,168,255,0.1); }
+        textarea::placeholder { color: var(--text-secondary); }
+
+        .drop-zone {
+            border: 2px dashed var(--border-glow); border-radius: 8px;
+            padding: 60px 20px; text-align: center; cursor: pointer;
+            transition: all 0.3s; background: rgba(0,0,0,0.2);
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--accent-cyan); background: rgba(0,229,255,0.04);
+            box-shadow: 0 0 20px rgba(0,229,255,0.08);
+        }
+        .drop-zone input[type="file"] { display: none; }
+
+        .btn-primary {
+            font-family: 'Rajdhani', sans-serif; font-weight: 700;
+            font-size: 1rem; letter-spacing: 0.2em;
+            background: linear-gradient(135deg, rgba(0,168,255,0.15), rgba(0,229,255,0.1));
+            border: 1px solid var(--accent-blue); color: var(--accent-cyan);
+            padding: 14px 40px; border-radius: 6px; cursor: pointer;
+            transition: all 0.2s; width: 100%;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, rgba(0,168,255,0.25), rgba(0,229,255,0.2));
+            box-shadow: 0 0 25px rgba(0,168,255,0.3);
+        }
+
+        .btn-back {
+            font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+            letter-spacing: 0.15em; color: var(--text-secondary);
+            background: transparent; border: 1px solid var(--border-color);
+            padding: 8px 16px; border-radius: 4px; cursor: pointer;
+            transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-back:hover { color: var(--text-primary); border-color: var(--border-glow); }
+
+        /* Result card */
+        .result-card {
+            border-radius: 8px; padding: 24px;
+            border: 1px solid; margin-top: 24px;
+            animation: fadeInUp 0.4s ease;
+        }
+        .result-card.danger { background: rgba(255,45,85,0.06); border-color: rgba(255,45,85,0.3); }
+        .result-card.warning { background: rgba(255,215,0,0.06); border-color: rgba(255,215,0,0.3); }
+        .result-card.safe { background: rgba(0,255,136,0.06); border-color: rgba(0,255,136,0.3); }
+
+        .score-big {
+            font-family: 'Rajdhani', sans-serif; font-size: 4rem; font-weight: 700; line-height: 1;
+        }
+        .danger .score-big { color: var(--accent-red); }
+        .warning .score-big { color: var(--accent-yellow); }
+        .safe .score-big { color: var(--accent-green); }
+
+        .status-label {
+            font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;
+            letter-spacing: 0.2em; margin-top: 4px;
+        }
+        .danger .status-label { color: var(--accent-red); }
+        .warning .status-label { color: var(--accent-yellow); }
+        .safe .status-label { color: var(--accent-green); }
+
+        .explanation-box {
+            font-family: 'Share Tech Mono', monospace; font-size: 0.75rem;
+            color: var(--text-secondary); line-height: 1.8;
+            background: rgba(0,0,0,0.2); border-radius: 6px; padding: 16px;
+            border-left: 3px solid;
+        }
+        .danger .explanation-box { border-left-color: var(--accent-red); }
+        .warning .explanation-box { border-left-color: var(--accent-yellow); }
+        .safe .explanation-box { border-left-color: var(--accent-green); }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-glow); border-radius: 3px; }
+    </style>
+</head>
+<body>
+<div class="container mx-auto max-w-3xl px-6 py-6">
+
+    <!-- Header -->
+    <header class="header rounded-lg mb-8" style="border-radius:8px;">
+        <div style="display:flex; align-items:center; gap:16px;">
+            <div style="padding:8px; background:rgba(0,168,255,0.1); border:1px solid rgba(0,168,255,0.3); border-radius:8px;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+            </div>
+            <div>
+                <div class="logo-text">Phish<span>Guard</span></div>
+                <div class="logo-sub">UPLOAD EMAIL FOR ANALYSIS</div>
+            </div>
+        </div>
+        <a href="/" class="btn-back">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            BACK TO SOC
+        </a>
+    </header>
+
+    <!-- Tab Toggle -->
+    <div style="display:flex; gap:8px; margin-bottom:20px;">
+        <button class="tab-btn active" id="tab-paste" onclick="switchTab('paste')">PASTE EMAIL TEXT</button>
+        <button class="tab-btn" id="tab-file" onclick="switchTab('file')">UPLOAD .EML FILE</button>
+    </div>
+
+    <!-- Panel -->
+    <div class="panel">
+        <div class="panel-header">
+            <span class="panel-title" id="panel-label">⬡ Paste Raw Email Content</span>
+        </div>
+        <div style="padding:24px;">
+
+            <!-- PASTE TAB -->
+            <div id="section-paste">
+                <p style="font-family:'Share Tech Mono'; font-size:0.7rem; color:var(--text-secondary); letter-spacing:0.1em; margin-bottom:12px;">
+                    Paste the full email content below — including headers, subject, sender, and body.
+                </p>
+                <form method="POST" action="/upload">
+                    <textarea name="email_text" placeholder="Paste the full email here...&#10;&#10;From: suspicious@paypa1.com&#10;Subject: URGENT: Verify your account&#10;&#10;Dear Customer,&#10;Your account has been suspended..."></textarea>
+                    <div style="margin-top:16px;">
+                        <button type="submit" class="btn-primary">⬡ ANALYZE EMAIL</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- FILE TAB -->
+            <div id="section-file" style="display:none;">
+                <p style="font-family:'Share Tech Mono'; font-size:0.7rem; color:var(--text-secondary); letter-spacing:0.1em; margin-bottom:12px;">
+                    Upload a .eml file exported from your email client.
+                </p>
+                <form method="POST" action="/upload" enctype="multipart/form-data" id="fileForm">
+                    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+                        <input type="file" name="eml_file" id="fileInput" accept=".eml,.txt" onchange="handleFileSelect(this)">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="1.5" style="margin:0 auto 12px;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                        </svg>
+                        <div id="dropLabel" style="font-family:'Rajdhani'; font-size:1rem; color:var(--text-secondary); letter-spacing:0.1em;">
+                            CLICK OR DRAG .EML FILE HERE
+                        </div>
+                        <div style="font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--text-secondary); margin-top:6px; letter-spacing:0.1em;">
+                            Supported: .eml, .txt
+                        </div>
+                    </div>
+                    <div style="margin-top:16px;">
+                        <button type="submit" class="btn-primary">⬡ ANALYZE FILE</button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── RESULT (shown if Flask passes result back) ── -->
+    {% if result %}
+    <div class="result-card {{ 'danger' if result.risk_score >= 70 else ('warning' if result.risk_score >= 40 else 'safe') }}">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
+            <div>
+                <div class="score-big">{{ result.risk_score }}<span style="font-size:1.5rem;">%</span></div>
+                <div class="status-label">{{ result.status }}</div>
+            </div>
+            <div style="text-align:right;">
+                <div style="font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--text-secondary); letter-spacing:0.1em; margin-bottom:4px;">SENDER</div>
+                <div style="font-family:'Exo 2'; font-size:0.85rem; color:var(--text-primary);">{{ result.sender }}</div>
+                <div style="font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--text-secondary); letter-spacing:0.1em; margin-top:8px; margin-bottom:4px;">SUBJECT</div>
+                <div style="font-family:'Exo 2'; font-size:0.85rem; color:var(--text-primary);">{{ result.subject }}</div>
+            </div>
+        </div>
+        <div style="margin-bottom:10px;">
+            {% if result.engine is defined and result.engine == 'claude-ai' %}
+            <span style="font-family:'Share Tech Mono'; font-size:0.6rem; letter-spacing:0.15em; color:#a78bfa; background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.3); padding:3px 10px; border-radius:3px;">✦ CLAUDE AI ENGINE</span>
+            {% else %}
+            <span style="font-family:'Share Tech Mono'; font-size:0.6rem; letter-spacing:0.15em; color:var(--text-mono); background:rgba(74,158,255,0.1); border:1px solid rgba(74,158,255,0.2); padding:3px 10px; border-radius:3px;">RULE ENGINE</span>
+            {% endif %}
+        </div>
+        <div class="explanation-box">
+            {% set parts = result.explanation.split(' | ') %}
+            {% for part in parts %}
+                {% if loop.first %}
+                    <div style="color:var(--text-primary); font-size:0.82rem; margin-bottom:8px; font-family:'Exo 2'; font-weight:500;">{{ part }}</div>
+                {% else %}
+                    <div style="margin-top:5px;"><span style="color:var(--text-mono);">› </span>{{ part }}</div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Error message -->
+    {% if error %}
+    <div style="margin-top:24px; padding:16px; background:rgba(255,45,85,0.08); border:1px solid rgba(255,45,85,0.3); border-radius:8px; font-family:'Share Tech Mono'; font-size:0.75rem; color:var(--accent-red); letter-spacing:0.05em;">
+        ⚠ {{ error }}
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+    function switchTab(tab) {
+        const isPaste = tab === 'paste';
+        document.getElementById('section-paste').style.display = isPaste ? 'block' : 'none';
+        document.getElementById('section-file').style.display = isPaste ? 'none' : 'block';
+        document.getElementById('tab-paste').classList.toggle('active', isPaste);
+        document.getElementById('tab-file').classList.toggle('active', !isPaste);
+        document.getElementById('panel-label').textContent = isPaste
+            ? '⬡ Paste Raw Email Content'
+            : '⬡ Upload .EML File';
+    }
+
+    function handleFileSelect(input) {
+        if (input.files && input.files[0]) {
+            document.getElementById('dropLabel').textContent = '✓ ' + input.files[0].name;
+            document.getElementById('dropLabel').style.color = 'var(--accent-green)';
+        }
+    }
+
+    // Drag and drop
+    const dropZone = document.getElementById('dropZone');
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            document.getElementById('fileInput').files = e.dataTransfer.files;
+            handleFileSelect(document.getElementById('fileInput'));
+        }
+    });
+</script>
+</body>
+</html>

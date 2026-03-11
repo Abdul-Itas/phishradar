@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishGuard — Phishing Simulation Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #050a12;
+            --bg-card: #0a1628;
+            --bg-card-hover: #0d1d36;
+            --border-color: #112240;
+            --border-glow: #1a3a6e;
+            --accent-blue: #00a8ff;
+            --accent-cyan: #00e5ff;
+            --accent-red: #ff2d55;
+            --accent-yellow: #ffd700;
+            --accent-green: #00ff88;
+            --accent-purple: #a78bfa;
+            --text-primary: #e8f0fe;
+            --text-secondary: #7a8fad;
+            --text-mono: #4a9eff;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: 'Exo 2', sans-serif;
+            min-height: 100vh;
+        }
+        body::before {
+            content: '';
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(rgba(0,168,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,168,255,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none; z-index: 0;
+        }
+        body::after {
+            content: '';
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+            pointer-events: none; z-index: 0;
+        }
+        .container { position: relative; z-index: 1; }
+        .header {
+            background: linear-gradient(180deg, rgba(0,168,255,0.05) 0%, transparent 100%);
+            border-bottom: 1px solid var(--border-glow);
+            padding: 16px 32px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .logo-text { font-family: 'Rajdhani', sans-serif; font-size: 1.8rem; font-weight: 700; }
+        .logo-text span { color: var(--accent-cyan); }
+        .logo-sub { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: var(--text-secondary); letter-spacing: 0.2em; }
+        .btn-back {
+            font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+            letter-spacing: 0.15em; color: var(--text-secondary);
+            background: transparent; border: 1px solid var(--border-color);
+            padding: 8px 16px; border-radius: 4px; cursor: pointer;
+            transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-back:hover { color: var(--text-primary); border-color: var(--border-glow); }
+
+        /* Scenario Cards */
+        .scenario-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px; overflow: hidden;
+            cursor: pointer; transition: all 0.3s;
+            position: relative;
+        }
+        .scenario-card:hover { border-color: var(--border-glow); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+        .scenario-card.selected { border-color: var(--accent-cyan); box-shadow: 0 0 20px rgba(0,229,255,0.1); }
+        .scenario-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 2px;
+        }
+        .scenario-card.bank::before { background: linear-gradient(90deg, transparent, var(--accent-red), transparent); }
+        .scenario-card.tech::before { background: linear-gradient(90deg, transparent, var(--accent-blue), transparent); }
+        .scenario-card.delivery::before { background: linear-gradient(90deg, transparent, var(--accent-yellow), transparent); }
+        .scenario-card.job::before { background: linear-gradient(90deg, transparent, var(--accent-purple), transparent); }
+
+        .difficulty-badge {
+            font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+            letter-spacing: 0.15em; padding: 3px 8px; border-radius: 3px; border: 1px solid;
+        }
+        .diff-easy { color: var(--accent-green); border-color: rgba(0,255,136,0.3); background: rgba(0,255,136,0.06); }
+        .diff-medium { color: var(--accent-yellow); border-color: rgba(255,215,0,0.3); background: rgba(255,215,0,0.06); }
+        .diff-hard { color: var(--accent-red); border-color: rgba(255,45,85,0.3); background: rgba(255,45,85,0.06); }
+
+        /* Email Preview */
+        .email-client {
+            background: #1a1a2e;
+            border: 1px solid var(--border-color);
+            border-radius: 10px; overflow: hidden;
+            font-family: 'Exo 2', sans-serif;
+        }
+        .email-toolbar {
+            background: #16213e;
+            padding: 10px 16px;
+            display: flex; align-items: center; gap: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .toolbar-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .email-header-row {
+            padding: 8px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex; gap: 12px; align-items: baseline;
+        }
+        .email-field-label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.65rem; color: var(--text-secondary);
+            letter-spacing: 0.1em; min-width: 60px;
+        }
+        .email-field-value { font-size: 0.85rem; color: var(--text-primary); }
+        .email-body-area { padding: 20px; font-size: 0.9rem; line-height: 1.8; color: #cdd9f5; }
+
+        /* Red flags overlay */
+        .flag-highlight {
+            background: rgba(255,45,85,0.15);
+            border-bottom: 2px solid var(--accent-red);
+            cursor: pointer; position: relative;
+            transition: background 0.2s;
+        }
+        .flag-highlight:hover { background: rgba(255,45,85,0.25); }
+        .flag-highlight.revealed { background: rgba(255,45,85,0.3); }
+
+        .flag-tooltip {
+            display: none;
+            position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+            background: #0a1628; border: 1px solid var(--accent-red);
+            border-radius: 6px; padding: 8px 12px;
+            font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+            color: var(--accent-red); white-space: nowrap; z-index: 10;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            margin-bottom: 6px;
+        }
+        .flag-highlight:hover .flag-tooltip,
+        .flag-highlight.revealed .flag-tooltip { display: block; }
+
+        /* Answer buttons */
+        .answer-btn {
+            font-family: 'Rajdhani', sans-serif; font-weight: 600;
+            font-size: 0.95rem; letter-spacing: 0.1em;
+            padding: 14px 24px; border-radius: 8px;
+            cursor: pointer; transition: all 0.2s; border: 1px solid;
+            flex: 1;
+        }
+        .answer-btn.phishing {
+            color: var(--accent-red); border-color: rgba(255,45,85,0.3);
+            background: rgba(255,45,85,0.06);
+        }
+        .answer-btn.phishing:hover { background: rgba(255,45,85,0.15); box-shadow: 0 0 20px rgba(255,45,85,0.2); }
+        .answer-btn.safe {
+            color: var(--accent-green); border-color: rgba(0,255,136,0.3);
+            background: rgba(0,255,136,0.06);
+        }
+        .answer-btn.safe:hover { background: rgba(0,255,136,0.15); box-shadow: 0 0 20px rgba(0,255,136,0.2); }
+
+        /* Result panel */
+        .result-panel {
+            border-radius: 10px; padding: 24px;
+            border: 1px solid; margin-top: 20px;
+            display: none; animation: fadeInUp 0.4s ease;
+        }
+        .result-panel.correct { background: rgba(0,255,136,0.06); border-color: rgba(0,255,136,0.3); }
+        .result-panel.wrong { background: rgba(255,45,85,0.06); border-color: rgba(255,45,85,0.3); }
+
+        /* Progress bar */
+        .progress-bar {
+            height: 4px; background: var(--border-color); border-radius: 2px; overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%; border-radius: 2px;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan));
+            transition: width 0.5s ease;
+        }
+
+        /* Score display */
+        .score-display {
+            font-family: 'Rajdhani', sans-serif; font-size: 3rem; font-weight: 700;
+            color: var(--accent-cyan); line-height: 1;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .scenario-card { animation: fadeInUp 0.4s ease forwards; }
+        .scenario-card:nth-child(2) { animation-delay: 0.08s; }
+        .scenario-card:nth-child(3) { animation-delay: 0.16s; }
+        .scenario-card:nth-child(4) { animation-delay: 0.24s; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-glow); border-radius: 3px; }
+
+        .hint-btn {
+            font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+            letter-spacing: 0.1em; color: var(--accent-yellow);
+            background: rgba(255,215,0,0.05); border: 1px solid rgba(255,215,0,0.2);
+            padding: 6px 14px; border-radius: 4px; cursor: pointer; transition: all 0.2s;
+        }
+        .hint-btn:hover { background: rgba(255,215,0,0.1); }
+
+        .flag-counter {
+            font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+            color: var(--text-secondary); letter-spacing: 0.1em;
+        }
+    </style>
+</head>
+<body>
+<div class="container mx-auto max-w-screen-lg px-6 py-6">
+
+    <!-- Header -->
+    <header class="header rounded-lg mb-8" style="border-radius:8px;">
+        <div style="display:flex; align-items:center; gap:16px;">
+            <div style="padding:8px; background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.3); border-radius:8px;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+            </div>
+            <div>
+                <div class="logo-text">Phish<span>Guard</span></div>
+                <div class="logo-sub">PHISHING SIMULATION LAB &nbsp;|&nbsp; CYBER AWARENESS TRAINING</div>
+            </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+            <div style="font-family:'Share Tech Mono'; font-size:0.7rem; color:var(--accent-purple); background:rgba(167,139,250,0.08); border:1px solid rgba(167,139,250,0.2); padding:6px 14px; border-radius:4px; letter-spacing:0.1em;">
+                Score: <span id="scoreDisplay">0</span> / <span id="totalDisplay">0</span>
+            </div>
+            <a href="/" class="btn-back">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                BACK TO SOC
+            </a>
+        </div>
+    </header>
+
+    <!-- Intro / Scenario Select (shown first) -->
+    <div id="scenarioSelect">
+        <div style="text-align:center; margin-bottom:32px;">
+            <div style="font-family:'Rajdhani'; font-size:2rem; font-weight:700; margin-bottom:8px;">
+                Can You Spot the <span style="color:var(--accent-red);">Phish?</span>
+            </div>
+            <div style="font-family:'Share Tech Mono'; font-size:0.75rem; color:var(--text-secondary); letter-spacing:0.1em; max-width:500px; margin:0 auto; line-height:1.7;">
+                Real phishing emails are designed to fool you. Train yourself to spot the signs before attackers do real damage. Select a scenario to begin.
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:16px; margin-bottom:32px;">
+
+            <!-- Scenario 1: Bank -->
+            <div class="scenario-card bank" onclick="loadScenario('bank')">
+                <div style="padding:20px;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                        <div style="padding:10px; background:rgba(255,45,85,0.1); border-radius:8px; border:1px solid rgba(255,45,85,0.2);">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-red)" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                            </svg>
+                        </div>
+                        <span class="difficulty-badge diff-easy">EASY</span>
+                    </div>
+                    <div style="font-family:'Rajdhani'; font-size:1.1rem; font-weight:700; margin-bottom:6px;">Bank Account Alert</div>
+                    <div style="font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--text-secondary); letter-spacing:0.05em; line-height:1.6;">
+                        Classic account suspension scam. Multiple obvious red flags for beginners.
+                    </div>
+                    <div style="margin-top:12px; font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--text-secondary); letter-spacing:0.1em;">
+                        🚩 4 red flags hidden
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scenario 2: Tech Support -->
+            <div class="scenario-card tech" onclick="loadScenario('tech')">
+                <div style="padding:20px;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                        <div style="padding:10px; background:rgba(0,168,255,0.1); border-radius:8px; border:1px solid rgba(0,168,255,0.2);">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <span class="difficulty-badge diff-medium">MEDIUM</span>
+                    </div>
+                    <div style="font-family:'Rajdhani'; font-size:1.1rem; font-weight:700; margin-bottom:6px;">Microsoft Security Alert</div>
+                    <div style="font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--text-secondary); letter-spacing:0.05em; line-height:1.6;">
+                        Tech giant impersonation with lookalike domain. Harder to spot.
+                    </div>
+                    <div style="margin-top:12px; font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--text-secondary); letter-spacing:0.1em;">
+                        🚩 3 red flags hidden
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scenario 3: Package Delivery -->
+            <div class="scenario-card delivery" onclick="loadScenario('delivery')">
+                <div style="padding:20px;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                        <div style="padding:10px; background:rgba(255,215,0,0.1); border-radius:8px; border:1px solid rgba(255,215,0,0.2);">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-yellow)" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                            </svg>
+                        </div>
+                        <span class="difficulty-badge diff-medium">MEDIUM</span>
+                    </div>
+                    <div style="font-family:'Rajdhani'; font-size:1.1rem; font-weight:700; margin-bottom:6px;">Package Delivery Failed</div>
+                    <div style="font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--text-secondary); letter-spacing:0.05em; line-height:1.6;">
+                        Fake courier notification designed to harvest payment details.
+                    </div>
+                    <div style="margin-top:12px; font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--text-secondary); letter-spacing:0.1em;">
+                        🚩 3 red flags hidden
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scenario 4: Job Offer -->
+            <div class="scenario-card job" onclick="loadScenario('job')">
+                <div style="padding:20px;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                        <div style="padding:10px; background:rgba(167,139,250,0.1); border-radius:8px; border:1px solid rgba(167,139,250,0.2);">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <span class="difficulty-badge diff-hard">HARD</span>
+                    </div>
+                    <div style="font-family:'Rajdhani'; font-size:1.1rem; font-weight:700; margin-bottom:6px;">Dream Job Offer</div>
+                    <div style="font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--text-secondary); letter-spacing:0.05em; line-height:1.6;">
+                        Sophisticated employment scam. Very convincing — few obvious tells.
+                    </div>
+                    <div style="margin-top:12px; font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--text-secondary); letter-spacing:0.1em;">
+                        🚩 2 red flags hidden
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats row -->
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;">
+            <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:8px; padding:16px; text-align:center;">
+                <div style="font-family:'Rajdhani'; font-size:2rem; font-weight:700; color:var(--accent-cyan);" id="completedCount">0</div>
+                <div style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--text-secondary); letter-spacing:0.15em; margin-top:4px;">COMPLETED</div>
+            </div>
+            <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:8px; padding:16px; text-align:center;">
+                <div style="font-family:'Rajdhani'; font-size:2rem; font-weight:700; color:var(--accent-green);" id="accuracyDisplay">—</div>
+                <div style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--text-secondary); letter-spacing:0.15em; margin-top:4px;">ACCURACY</div>
+            </div>
+            <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:8px; padding:16px; text-align:center;">
+                <div style="font-family:'Rajdhani'; font-size:2rem; font-weight:700; color:var(--accent-purple);" id="flagsFoundDisplay">0</div>
+                <div style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--text-secondary); letter-spacing:0.15em; margin-top:4px;">RED FLAGS FOUND</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Scenario View (hidden until scenario selected) -->
+    <div id="scenarioView" style="display:none;">
+
+        <!-- Scenario header -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <div>
+                <div style="font-family:'Rajdhani'; font-size:1.4rem; font-weight:700;" id="scenarioTitle"></div>
+                <div style="font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--text-secondary); letter-spacing:0.1em; margin-top:3px;" id="scenarioSubtitle"></div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <span class="flag-counter">Hover red text to reveal flags</span>
+                <button class="hint-btn" onclick="revealAllFlags()">⚑ REVEAL ALL FLAGS</button>
+                <button onclick="backToSelect()" class="btn-back">← BACK</button>
+            </div>
+        </div>
+
+        <!-- Progress -->
+        <div style="margin-bottom:20px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                <span style="font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--text-secondary); letter-spacing:0.1em;">SCENARIO PROGRESS</span>
+                <span id="progressLabel" style="font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--text-mono); letter-spacing:0.1em;">Analyzing email...</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:30%"></div></div>
+        </div>
+
+        <!-- Email client mockup -->
+        <div class="email-client" id="emailDisplay" style="margin-bottom:20px;"></div>
+
+        <!-- Answer buttons -->
+        <div style="display:flex; gap:12px; margin-bottom:16px;" id="answerButtons">
+            <button class="answer-btn phishing" onclick="submitAnswer(true)">
+                🎣 THIS IS PHISHING
+            </button>
+            <button class="answer-btn safe" onclick="submitAnswer(false)">
+                ✓ THIS IS SAFE
+            </button>
+        </div>
+
+        <!-- Result panel -->
+        <div class="result-panel" id="resultPanel"></div>
+
+    </div>
+</div>
+
+<script>
+const SCENARIOS = {
+    bank: {
+        title: "Bank Account Alert",
+        subtitle: "Scenario 1 of 4 — Difficulty: EASY",
+        isPhishing: true,
+        from: '<span class="flag-highlight">security-alert@bankofamerica-secure.net<span class="flag-tooltip">🚩 Real BofA uses @bankofamerica.com not @bankofamerica-secure.net</span></span>',
+        subject: '<span class="flag-highlight">URGENT: Your Account Has Been Suspended<span class="flag-tooltip">🚩 Urgency tactics are a classic phishing red flag</span></span>',
+        to: "you@gmail.com",
+        body: `<p>Dear <span class="flag-highlight">Customer<span class="flag-tooltip">🚩 Legitimate banks always use your real name, never "Customer"</span></span>,</p>
+<br>
+<p>We have detected <strong>unusual activity</strong> on your Bank of America account. To protect your security, your account has been <strong style="color:#ff2d55;">temporarily suspended</strong>.</p>
+<br>
+<p>You must verify your identity within <strong>24 hours</strong> or your account will be permanently closed.</p>
+<br>
+<p>Click the link below to restore access immediately:</p>
+<br>
+<p><span class="flag-highlight">→ http://bit.ly/boa-verify-account-2024<span class="flag-tooltip">🚩 URL shortener (bit.ly) hides the real destination — never click these</span></span></p>
+<br>
+<p>Sincerely,<br>Bank of America Security Team</p>`,
+        explanation: "This is a textbook phishing email. Real banks never send account notices from third-party domains, never use generic greetings, never use shortened URLs, and never threaten permanent closure within 24 hours.",
+        flags: 4
+    },
+    tech: {
+        title: "Microsoft Security Alert",
+        subtitle: "Scenario 2 of 4 — Difficulty: MEDIUM",
+        isPhishing: true,
+        from: '<span class="flag-highlight">no-reply@micros0ft-security.com<span class="flag-tooltip">🚩 "micros0ft" uses zero instead of the letter O — classic typosquatting</span></span>',
+        subject: "Your Microsoft account: Unusual sign-in activity",
+        to: "you@gmail.com",
+        body: `<p>Hello,</p>
+<br>
+<p>We detected a sign-in to your Microsoft account from an unrecognized device.</p>
+<br>
+<p><strong>Location:</strong> Lagos, Nigeria<br>
+<strong>Device:</strong> Unknown Windows PC<br>
+<strong>Time:</strong> Today at 3:42 AM</p>
+<br>
+<p>If this was you, you can ignore this message. If this was NOT you, your account may be compromised.</p>
+<br>
+<p><span class="flag-highlight">Secure your account now →<span class="flag-tooltip">🚩 This link goes to a fake Microsoft login page to steal your credentials</span></span></p>
+<br>
+<p>If you don't act within <span class="flag-highlight">48 hours, we will suspend your account.<span class="flag-tooltip">🚩 Microsoft never threatens suspension — this is a pressure tactic</span></span></p>
+<br>
+<p>Microsoft Security Team</p>`,
+        explanation: "The sender domain 'micros0ft-security.com' replaces the letter O with zero. Legitimate Microsoft emails always come from @microsoft.com. The 48-hour threat and suspicious login details are designed to create panic.",
+        flags: 3
+    },
+    delivery: {
+        title: "Package Delivery Failed",
+        subtitle: "Scenario 3 of 4 — Difficulty: MEDIUM",
+        isPhishing: true,
+        from: '<span class="flag-highlight">delivery-notification@dhl-express-tracking.info<span class="flag-tooltip">🚩 Real DHL emails come from @dhl.com — this is a fake domain</span></span>',
+        subject: "Your package could not be delivered — Action required",
+        to: "you@gmail.com",
+        body: `<p>Dear Customer,</p>
+<br>
+<p>We attempted to deliver your package <strong>#DHL-7291048372</strong> today but were unable to complete the delivery.</p>
+<br>
+<p>To reschedule your delivery, a small redelivery fee of <span class="flag-highlight"><strong>$2.99</strong> must be paid<span class="flag-tooltip">🚩 Courier companies don't charge redelivery fees via email links — this harvests your card details</span></span> within 24 hours.</p>
+<br>
+<p>Reschedule your delivery: <span class="flag-highlight">http://tinyurl.com/dhl-redeliver-now<span class="flag-tooltip">🚩 URL shortener hiding a fake payment page</span></span></p>
+<br>
+<p>Failure to pay will result in your package being returned to sender.</p>
+<br>
+<p>DHL Express Customer Service</p>`,
+        explanation: "Fake delivery emails are extremely common. Real couriers never ask you to pay small fees via email links. The goal is to capture your credit card details on a fake payment page.",
+        flags: 3
+    },
+    job: {
+        title: "Dream Job Offer",
+        subtitle: "Scenario 4 of 4 — Difficulty: HARD",
+        isPhishing: true,
+        from: "hr-recruiting@talent-solutions-global.com",
+        subject: "Exciting career opportunity — Remote position $85,000/yr",
+        to: "you@gmail.com",
+        body: `<p>Hello,</p>
+<br>
+<p>My name is Sarah Mitchell, Senior Talent Acquisition at Global Talent Solutions. I came across your profile and believe you would be an excellent fit for a <strong>Remote Operations Manager</strong> position we have available.</p>
+<br>
+<p><strong>Compensation:</strong> $85,000/year + benefits<br>
+<strong>Location:</strong> Fully remote<br>
+<strong>Start date:</strong> Flexible</p>
+<br>
+<p>To proceed, we'll need you to <span class="flag-highlight">complete a background check form and provide your Social Security Number and bank account details for direct deposit setup.<span class="flag-tooltip">🚩 Legitimate employers NEVER ask for SSN or bank details via email before hiring</span></span></p>
+<br>
+<p>Please also <span class="flag-highlight">purchase a $200 equipment gift card and send us the code — it will be reimbursed in your first paycheck.<span class="flag-tooltip">🚩 "Gift card for equipment" is one of the most common job scam tactics</span></span></p>
+<br>
+<p>Reply to confirm your interest within 48 hours.</p>
+<br>
+<p>Best regards,<br>Sarah Mitchell<br>Global Talent Solutions</p>`,
+        explanation: "Job scams are sophisticated and hard to detect. Key tells: asking for SSN/bank details before employment, requesting gift card purchases for 'equipment', and high salaries for vague roles. Never provide financial info or purchase gift cards for a job.",
+        flags: 2
+    }
+};
+
+let currentScenario = null;
+let score = 0;
+let total = 0;
+let flagsFound = 0;
+let completed = [];
+
+function loadScenario(key) {
+    currentScenario = key;
+    const s = SCENARIOS[key];
+
+    document.getElementById('scenarioSelect').style.display = 'none';
+    document.getElementById('scenarioView').style.display = 'block';
+    document.getElementById('scenarioTitle').textContent = s.title;
+    document.getElementById('scenarioSubtitle').textContent = s.subtitle;
+    document.getElementById('resultPanel').style.display = 'none';
+    document.getElementById('resultPanel').className = 'result-panel';
+    document.getElementById('answerButtons').style.display = 'flex';
+    document.getElementById('progressLabel').textContent = 'Analyzing email...';
+    document.getElementById('progressFill').style.width = '30%';
+
+    // Build email client
+    document.getElementById('emailDisplay').innerHTML = `
+        <div class="email-toolbar">
+            <div class="toolbar-dot" style="background:#ff5f57;"></div>
+            <div class="toolbar-dot" style="background:#ffbd2e;"></div>
+            <div class="toolbar-dot" style="background:#28c840;"></div>
+            <span style="margin-left:12px; font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--text-secondary); letter-spacing:0.1em;">INBOX — PHISHGUARD MAIL CLIENT</span>
+        </div>
+        <div class="email-header-row">
+            <span class="email-field-label">FROM</span>
+            <span class="email-field-value">${s.from}</span>
+        </div>
+        <div class="email-header-row">
+            <span class="email-field-label">TO</span>
+            <span class="email-field-value">${s.to}</span>
+        </div>
+        <div class="email-header-row">
+            <span class="email-field-label">SUBJECT</span>
+            <span class="email-field-value" style="font-weight:600;">${s.subject}</span>
+        </div>
+        <div class="email-body-area">${s.body}</div>
+    `;
+
+    // Animate progress
+    setTimeout(() => {
+        document.getElementById('progressFill').style.width = '60%';
+        document.getElementById('progressLabel').textContent = 'Waiting for your analysis...';
+    }, 800);
+}
+
+function submitAnswer(userSaysPhishing) {
+    const s = SCENARIOS[currentScenario];
+    const correct = userSaysPhishing === s.isPhishing;
+
+    total++;
+    if (correct) score++;
+    if (!completed.includes(currentScenario)) {
+        completed.push(currentScenario);
+    }
+
+    document.getElementById('progressFill').style.width = '100%';
+    document.getElementById('progressLabel').textContent = correct ? 'Correct!' : 'Incorrect';
+    document.getElementById('answerButtons').style.display = 'none';
+
+    // Reveal all flags
+    revealAllFlags();
+
+    const panel = document.getElementById('resultPanel');
+    panel.className = 'result-panel ' + (correct ? 'correct' : 'wrong');
+    panel.style.display = 'block';
+
+    panel.innerHTML = `
+        <div style="display:flex; align-items:flex-start; gap:16px; margin-bottom:16px;">
+            <div style="font-size:2.5rem; line-height:1;">${correct ? '✓' : '✗'}</div>
+            <div>
+                <div style="font-family:'Rajdhani'; font-size:1.3rem; font-weight:700; color:${correct ? 'var(--accent-green)' : 'var(--accent-red)'}; margin-bottom:4px;">
+                    ${correct ? 'Correct — You spotted the phish!' : 'Incorrect — This was a phishing email!'}
+                </div>
+                <div style="font-family:'Exo 2'; font-size:0.85rem; color:var(--text-secondary); line-height:1.7;">${s.explanation}</div>
+            </div>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:16px;">
+            <button onclick="backToSelect()" style="font-family:'Rajdhani'; font-weight:600; font-size:0.9rem; letter-spacing:0.1em; padding:10px 20px; border-radius:6px; cursor:pointer; background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.2); color:var(--accent-cyan); transition:all 0.2s;" onmouseover="this.style.background='rgba(0,229,255,0.15)'" onmouseout="this.style.background='rgba(0,229,255,0.08)'">← TRY ANOTHER</button>
+        </div>
+    `;
+
+    updateStats();
+}
+
+function revealAllFlags() {
+    document.querySelectorAll('.flag-highlight').forEach(el => el.classList.add('revealed'));
+}
+
+function backToSelect() {
+    document.getElementById('scenarioSelect').style.display = 'block';
+    document.getElementById('scenarioView').style.display = 'none';
+    updateStats();
+}
+
+function updateStats() {
+    document.getElementById('scoreDisplay').textContent = score;
+    document.getElementById('totalDisplay').textContent = total;
+    document.getElementById('completedCount').textContent = completed.length;
+    document.getElementById('accuracyDisplay').textContent = total > 0 ? Math.round((score/total)*100) + '%' : '—';
+
+    // Count revealed flags
+    flagsFound = document.querySelectorAll('.flag-highlight.revealed').length;
+    document.getElementById('flagsFoundDisplay').textContent = flagsFound;
+}
+</script>
+</body>
+</html>
