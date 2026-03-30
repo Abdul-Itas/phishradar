@@ -1,4 +1,5 @@
 import os
+import time
 import email as email_lib
 from email.header import decode_header
 
@@ -13,8 +14,17 @@ os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'  # Allow scope differences
 app.secret_key = os.getenv("FLASK_SECRET", "phishradar-dev-secret")
 
 # Server-side PKCE store — survives browser switches (Electron → system browser)
-# Keyed by OAuth state param, entry removed after use
 _pkce_store = {}
+
+# ── Thread-safe global email cache ───────────────────────────────────────────
+# Prevents duplicate Gmail API calls when pywebview fires multiple page requests
+import threading
+
+_cache_lock = threading.Lock()
+_cached_emails = {}  # user_email → list of emails
+_cached_time = {}  # user_email → timestamp
+_fetch_active = set()  # set of user_emails currently being fetched
+CACHE_TTL = 300  # 5 minutes
 
 
 # ─── Helper: parse raw email string into subject/sender/body ──────────────────
@@ -53,33 +63,57 @@ def parse_raw_email(raw: str) -> dict:
 # ─── HOME — SOC Dashboard ─────────────────────────────────────────────────────
 @app.route('/')
 def dashboard():
-    import time
-    from flask import make_response
     from email_scanner import send_phishing_alert
     emails = []
     now = time.time()
-    cache_ttl = 120  # 2 minutes
 
-    cached = session.get('cached_emails')
-    cached_time = session.get('cached_emails_time', 0)
-    fresh = bool(cached and (now - cached_time) < cache_ttl)
+    user_key = session.get('user_email', '')
+    token_info = session.get('google_token')
 
-    if fresh:
-        print("[phishradar] Serving emails from cache")
-        emails = cached
-    elif 'google_token' in session:
-        token_info = session['google_token']
-        print(f"[phishradar] Token scopes: {token_info.get('scopes', 'NONE')}")
-        print("[phishradar] Fetching emails via Google OAuth token...")
-        emails = fetch_emails_with_token(token_info, limit=5) or []
-        session['cached_emails'] = emails
-        session['cached_emails_time'] = now
+    if not token_info or not user_key:
+        emails = []  # not logged in
+
     else:
-        # Not logged in — show empty dashboard, don't fetch anything
-        emails = []
+        with _cache_lock:
+            age = now - _cached_time.get(user_key, 0)
+            fresh = (user_key in _cached_emails) and (age < CACHE_TTL)
+            busy = user_key in _fetch_active
+
+        if fresh:
+            print("[PhishRadar] Serving emails from global cache")
+            emails = _cached_emails[user_key]
+
+        elif busy:
+            # Fetch already running — wait up to 8s for it to finish
+            print("[PhishRadar] Fetch in progress — waiting...")
+            for _ in range(16):
+                time.sleep(0.5)
+                with _cache_lock:
+                    if user_key not in _fetch_active:
+                        break
+            emails = _cached_emails.get(user_key, [])
+
+        else:
+            # Claim the fetch slot
+            with _cache_lock:
+                _fetch_active.add(user_key)
+            try:
+                print(f"[PhishRadar] Token scopes: {token_info.get('scopes', 'NONE')}")
+                print("[PhishRadar] Fetching emails via Google OAuth token...")
+                fetched = fetch_emails_with_token(token_info, limit=5) or []
+                with _cache_lock:
+                    _cached_emails[user_key] = fetched
+                    _cached_time[user_key] = now
+                emails = fetched
+            except Exception as e:
+                print(f"[PhishRadar] Fetch error: {e}")
+                emails = _cached_emails.get(user_key, [])
+            finally:
+                with _cache_lock:
+                    _fetch_active.discard(user_key)
 
     # Send alerts only for new phishing emails not previously alerted
-    if not fresh:
+    if emails:
         alerted = set(session.get('alerted_ids', []))
         for em in emails:
             msg_id = em.get('msg_id') or em.get('subject', '')
@@ -91,7 +125,7 @@ def dashboard():
     connected_email = session.get('user_email', None)
     resp = make_response(render_template('dashboard.html', emails=emails, connected_email=connected_email))
     if connected_email:
-        resp.headers['Cache-Control'] = 'private, max-age=120'
+        resp.headers['Cache-Control'] = 'private, max-age=300'
     else:
         resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
     return resp
@@ -257,10 +291,10 @@ def google_callback():
         user_info = service.userinfo().get().execute()
         session['user_email'] = user_info.get('email', '')
 
-        print(f"[phishradar] OAuth success for {session['user_email']}")
+        print(f"[PhishRadar] OAuth success for {session['user_email']}")
 
     except Exception as e:
-        print(f"[phishradar] OAuth callback error: {e}")
+        print(f"[PhishRadar] OAuth callback error: {e}")
         import traceback
         traceback.print_exc()
         return redirect(url_for('connect_google') + '?status=error')
@@ -284,7 +318,7 @@ OAUTH_SUCCESS_PAGE = '''<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
-<title>phishradar — Connected</title>
+<title>PhishRadar — Connected</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
@@ -315,7 +349,7 @@ OAUTH_SUCCESS_PAGE = '''<!DOCTYPE html>
 <div class="card">
   <div class="icon">✅</div>
   <h1>Gmail Connected!</h1>
-  <p>Your Google account has been successfully connected to phishradar SOC.</p>
+  <p>Your Google account has been successfully connected to PhishRadar SOC.</p>
   <a href="/" class="btn">→ GO TO DASHBOARD</a>
 </div>
 <script>
@@ -329,7 +363,12 @@ OAUTH_SUCCESS_PAGE = '''<!DOCTYPE html>
 # ─── LOGOUT — Disconnect Google account ──────────────────────────────────────
 @app.route('/logout')
 def logout():
-    session.clear()  # wipe everything — tokens, cache, alerts, all
+    # Clear server-side cache for this user
+    user_email = session.get('user_email', '')
+    if user_email:
+        _server_cache.pop(user_email, None)
+        _server_cache_time.pop(user_email, None)
+    session.clear()
     resp = make_response(redirect(url_for('dashboard')))
     resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
     resp.headers['Pragma'] = 'no-cache'
@@ -446,7 +485,7 @@ def scan_url():
                             'message': 'CONFIRMED MALICIOUS by Google Safe Browsing database'
                         })
             except Exception as e:
-                print(f'[phishradar] GSB check failed: {e}')
+                print(f'[PhishRadar] GSB check failed: {e}')
 
         # 4. Lookalike brand domain check
         BRANDS = ['paypal', 'google', 'amazon', 'microsoft', 'apple',
@@ -544,4 +583,5 @@ if __name__ == '__main__':
     # Don't raise errors when Google returns a slightly different scope set
     os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
     # Force Flask to use 127.0.0.1 so it always matches the redirect URI in Google Console
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)
