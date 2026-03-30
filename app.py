@@ -2,7 +2,7 @@ import os
 import email as email_lib
 from email.header import decode_header
 
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, render_template_string, request, redirect, url_for, session, make_response
 from email_scanner import fetch_latest_emails, analyze_email, fetch_emails_with_token
 
 app = Flask(__name__)
@@ -10,7 +10,11 @@ app = Flask(__name__)
 # OAuth environment flags — must be set before any OAuth flow runs
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'  # Allow HTTP in dev
 os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'  # Allow scope differences
-app.secret_key = os.getenv("FLASK_SECRET", "phishguard-dev-secret")
+app.secret_key = os.getenv("FLASK_SECRET", "phishradar-dev-secret")
+
+# Server-side PKCE store — survives browser switches (Electron → system browser)
+# Keyed by OAuth state param, entry removed after use
+_pkce_store = {}
 
 
 # ─── Helper: parse raw email string into subject/sender/body ──────────────────
@@ -61,20 +65,18 @@ def dashboard():
     fresh = bool(cached and (now - cached_time) < cache_ttl)
 
     if fresh:
-        print("[PhishGuard] Serving emails from cache")
+        print("[phishradar] Serving emails from cache")
         emails = cached
     elif 'google_token' in session:
         token_info = session['google_token']
-        print(f"[PhishGuard] Token scopes: {token_info.get('scopes', 'NONE')}")
-        print("[PhishGuard] Fetching emails via Google OAuth token...")
+        print(f"[phishradar] Token scopes: {token_info.get('scopes', 'NONE')}")
+        print("[phishradar] Fetching emails via Google OAuth token...")
         emails = fetch_emails_with_token(token_info, limit=5) or []
         session['cached_emails'] = emails
         session['cached_emails_time'] = now
     else:
-        print("[PhishGuard] Fetching emails via IMAP...")
-        emails = fetch_latest_emails(limit=5) or []
-        session['cached_emails'] = emails
-        session['cached_emails_time'] = now
+        # Not logged in — show empty dashboard, don't fetch anything
+        emails = []
 
     # Send alerts only for new phishing emails not previously alerted
     if not fresh:
@@ -88,7 +90,10 @@ def dashboard():
 
     connected_email = session.get('user_email', None)
     resp = make_response(render_template('dashboard.html', emails=emails, connected_email=connected_email))
-    resp.headers['Cache-Control'] = 'private, max-age=120'
+    if connected_email:
+        resp.headers['Cache-Control'] = 'private, max-age=120'
+    else:
+        resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
     return resp
 
 
@@ -184,8 +189,11 @@ def google_login():
         code_challenge=code_challenge,
         code_challenge_method='S256',
     )
-    session['oauth_state'] = state
-    session['code_verifier'] = code_verifier
+    # Store code_verifier server-side keyed by state
+    # This survives even when OAuth completes in a different browser (Electron desktop)
+    _pkce_store[state] = code_verifier
+    session['oauth_state'] = state  # keep for web browser flow compatibility
+    session['code_verifier'] = code_verifier  # keep for web browser flow compatibility
     return redirect(auth_url)
 
 
@@ -220,7 +228,11 @@ def google_callback():
         # Force http in the authorization response URL (fixes https mismatch in dev)
         auth_response = request.url.replace('https://', 'http://')
         # Pass code_verifier to satisfy PKCE check
-        code_verifier = session.pop('code_verifier', None)
+        # Retrieve code_verifier — check server-side store first (works for
+        # Electron desktop where system browser has a different session),
+        # then fall back to session (works for regular browser flow)
+        state_key = request.args.get('state', '')
+        code_verifier = _pkce_store.pop(state_key, None) or session.pop('code_verifier', None)
         flow.fetch_token(
             authorization_response=auth_response,
             code_verifier=code_verifier,
@@ -245,26 +257,83 @@ def google_callback():
         user_info = service.userinfo().get().execute()
         session['user_email'] = user_info.get('email', '')
 
-        print(f"[PhishGuard] OAuth success for {session['user_email']}")
+        print(f"[phishradar] OAuth success for {session['user_email']}")
 
     except Exception as e:
-        print(f"[PhishGuard] OAuth callback error: {e}")
+        print(f"[phishradar] OAuth callback error: {e}")
         import traceback
         traceback.print_exc()
         return redirect(url_for('connect_google') + '?status=error')
 
+    # If request came from a non-Electron browser (system browser during desktop OAuth)
+    # show a "Return to app" page instead of redirecting to dashboard
+    # The user will click back to the desktop window manually
+    user_agent = request.headers.get('User-Agent', '')
+    # pywebview uses a specific user agent; system browsers don't
+    is_desktop_app = 'pywebview' in user_agent.lower() or request.args.get('desktop') == '1'
+
+    if not is_desktop_app:
+        # Came from system browser (Electron/pywebview OAuth flow)
+        return render_template_string(OAUTH_SUCCESS_PAGE)
+
     return redirect(url_for('dashboard'))
+
+
+# ── OAuth success page — works both in pywebview and system browser ───────────
+OAUTH_SUCCESS_PAGE = '''<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>phishradar — Connected</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background:#050a12; color:#e8f0fe;
+    font-family:"Segoe UI",sans-serif;
+    display:flex; align-items:center; justify-content:center;
+    min-height:100vh;
+  }
+  .card {
+    background:#0a1628; border:1px solid #1a3a6e;
+    border-radius:16px; padding:48px 40px; text-align:center;
+    max-width:460px; width:90%;
+  }
+  .icon { font-size:3.5rem; margin-bottom:20px; }
+  h1 { font-size:1.6rem; font-weight:700; color:#00e5ff; margin-bottom:10px; }
+  p { font-size:0.9rem; color:#7a8fad; line-height:1.7; margin-bottom:24px; }
+  .btn {
+    display:inline-block; padding:14px 32px; border-radius:8px;
+    background:rgba(0,229,255,0.1); border:1px solid rgba(0,229,255,0.3);
+    color:#00e5ff; font-size:1rem; font-weight:700;
+    text-decoration:none; letter-spacing:1px; cursor:pointer;
+    transition: background 0.2s;
+  }
+  .btn:hover { background:rgba(0,229,255,0.25); }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">✅</div>
+  <h1>Gmail Connected!</h1>
+  <p>Your Google account has been successfully connected to phishradar SOC.</p>
+  <a href="/" class="btn">→ GO TO DASHBOARD</a>
+</div>
+<script>
+  // Auto-redirect to dashboard after 2 seconds
+  setTimeout(function() { window.location.href = "/"; }, 2000);
+</script>
+</body>
+</html>'''
 
 
 # ─── LOGOUT — Disconnect Google account ──────────────────────────────────────
 @app.route('/logout')
 def logout():
-    session.pop('google_token', None)
-    session.pop('user_email', None)
-    session.pop('cached_emails', None)
-    session.pop('cached_emails_time', None)
-    session.pop('alerted_ids', None)
-    return redirect(url_for('dashboard'))
+    session.clear()  # wipe everything — tokens, cache, alerts, all
+    resp = make_response(redirect(url_for('dashboard')))
+    resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    return resp
 
 
 # ─── PDF REPORT ──────────────────────────────────────────────────────────────
@@ -282,7 +351,7 @@ def download_report():
     connected_email = session.get('user_email', None)
     pdf_bytes = generate_report(emails, connected_email)
 
-    filename = f"phishguard_report_{__import__('datetime').datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    filename = f"phishradar_report_{__import__('datetime').datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
     return Response(
         pdf_bytes,
         mimetype='application/pdf',
@@ -354,7 +423,7 @@ def scan_url():
         if gsb_key:
             try:
                 gsb_payload = json.dumps({
-                    "client": {"clientId": "phishguard", "clientVersion": "2.0"},
+                    "client": {"clientId": "phishradar", "clientVersion": "2.0"},
                     "threatInfo": {
                         "threatTypes": ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE"],
                         "platformTypes": ["ANY_PLATFORM"],
@@ -377,7 +446,7 @@ def scan_url():
                             'message': 'CONFIRMED MALICIOUS by Google Safe Browsing database'
                         })
             except Exception as e:
-                print(f'[PhishGuard] GSB check failed: {e}')
+                print(f'[phishradar] GSB check failed: {e}')
 
         # 4. Lookalike brand domain check
         BRANDS = ['paypal', 'google', 'amazon', 'microsoft', 'apple',

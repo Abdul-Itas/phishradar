@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PhishGuard — Phishing Simulation Lab</title>
+    <title>PhishRadar — Phishing Simulation Lab</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -210,6 +210,169 @@
             font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
             color: var(--text-secondary); letter-spacing: 0.1em;
         }
+        /* ── Tab Navigation ── */
+        .tab-nav {
+            display: flex; gap: 0; margin-bottom: 32px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .tab-btn {
+            font-family: 'Share Tech Mono', monospace; font-size: 0.7rem;
+            letter-spacing: 0.12em; padding: 12px 24px;
+            border: none; background: transparent;
+            color: var(--text-secondary); cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px; transition: all 0.2s;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .tab-btn:hover { color: var(--text-primary); }
+        .tab-btn.active { color: var(--accent-cyan); border-bottom-color: var(--accent-cyan); }
+
+        /* ── Cyber Hygiene ── */
+        .hygiene-section {
+            margin-bottom: 40px;
+        }
+        .hygiene-section-title {
+            font-family: 'Rajdhani', sans-serif; font-size: 1.3rem; font-weight: 700;
+            color: var(--text-primary); margin-bottom: 6px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .hygiene-section-sub {
+            font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+            color: var(--text-secondary); letter-spacing: 0.1em;
+            margin-bottom: 20px;
+        }
+        .hygiene-card {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 10px; padding: 20px; transition: all 0.3s;
+            position: relative; overflow: hidden;
+        }
+        .hygiene-card:hover { border-color: var(--border-glow); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+        .hygiene-card-accent {
+            position: absolute; top: 0; left: 0; right: 0; height: 3px;
+        }
+        .hygiene-card-icon {
+            width: 44px; height: 44px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 14px; font-size: 1.3rem;
+        }
+        .hygiene-card-title {
+            font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 700;
+            color: var(--text-primary); margin-bottom: 8px;
+        }
+        .hygiene-card-body {
+            font-family: 'Exo 2', sans-serif; font-size: 0.82rem;
+            color: var(--text-secondary); line-height: 1.75;
+        }
+        .hygiene-tip {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 10px 14px; border-radius: 6px;
+            background: rgba(0,229,255,0.04); border: 1px solid rgba(0,229,255,0.08);
+            margin-bottom: 8px; transition: background 0.2s;
+        }
+        .hygiene-tip:hover { background: rgba(0,229,255,0.08); }
+        .hygiene-tip-icon { font-size: 1rem; margin-top: 1px; flex-shrink: 0; }
+        .hygiene-tip-text {
+            font-family: 'Exo 2', sans-serif; font-size: 0.82rem;
+            color: var(--text-secondary); line-height: 1.6;
+        }
+        .hygiene-tip-text strong { color: var(--text-primary); }
+        .do-dont-row {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px;
+        }
+        .do-card {
+            background: rgba(0,255,136,0.04); border: 1px solid rgba(0,255,136,0.15);
+            border-radius: 8px; padding: 14px;
+        }
+        .dont-card {
+            background: rgba(255,45,85,0.04); border: 1px solid rgba(255,45,85,0.15);
+            border-radius: 8px; padding: 14px;
+        }
+        .do-label {
+            font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+            color: var(--accent-green); letter-spacing: 0.15em; margin-bottom: 8px;
+        }
+        .dont-label {
+            font-family: 'Share Tech Mono', monospace; font-size: 0.6rem;
+            color: var(--accent-red); letter-spacing: 0.15em; margin-bottom: 8px;
+        }
+        .checklist-item {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .checklist-item:last-child { border-bottom: none; }
+        .checklist-check {
+            width: 20px; height: 20px; border-radius: 4px; flex-shrink: 0;
+            border: 1px solid var(--border-glow); background: var(--bg-primary);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem; transition: all 0.2s; margin-top: 1px;
+        }
+        .checklist-check.checked { background: var(--accent-green); border-color: var(--accent-green); color: #000; }
+        .checklist-text {
+            font-family: 'Exo 2', sans-serif; font-size: 0.82rem;
+            color: var(--text-secondary); line-height: 1.6; cursor: pointer;
+        }
+        .checklist-text.checked { text-decoration: line-through; color: rgba(122,143,173,0.5); }
+        .warning-box {
+            background: rgba(255,215,0,0.06); border: 1px solid rgba(255,215,0,0.2);
+            border-radius: 8px; padding: 14px 18px;
+            display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px;
+        }
+        .warning-box-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+        .warning-box-text {
+            font-family: 'Exo 2', sans-serif; font-size: 0.82rem;
+            color: var(--text-secondary); line-height: 1.65;
+        }
+        .warning-box-text strong { color: var(--accent-yellow); }
+        .red-flag-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+        }
+        .red-flag-item {
+            background: rgba(255,45,85,0.05); border: 1px solid rgba(255,45,85,0.15);
+            border-radius: 8px; padding: 12px 14px;
+            display: flex; align-items: flex-start; gap: 10px;
+        }
+        .red-flag-emoji { font-size: 1.1rem; flex-shrink: 0; }
+        .red-flag-text {
+            font-family: 'Exo 2', sans-serif; font-size: 0.8rem;
+            color: var(--text-secondary); line-height: 1.55;
+        }
+        .red-flag-text strong { color: var(--accent-red); font-size: 0.82rem; }
+        .step-flow {
+            display: flex; flex-direction: column; gap: 0;
+        }
+        .step-item {
+            display: flex; align-items: flex-start; gap: 16px;
+            position: relative; padding-bottom: 20px;
+        }
+        .step-item:last-child { padding-bottom: 0; }
+        .step-item::before {
+            content: '';
+            position: absolute; left: 19px; top: 40px;
+            width: 2px; height: calc(100% - 20px);
+            background: var(--border-color);
+        }
+        .step-item:last-child::before { display: none; }
+        .step-num {
+            width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 700;
+            position: relative; z-index: 1;
+        }
+        .step-content { padding-top: 8px; }
+        .step-title {
+            font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 700;
+            color: var(--text-primary); margin-bottom: 4px;
+        }
+        .step-desc {
+            font-family: 'Exo 2', sans-serif; font-size: 0.82rem;
+            color: var(--text-secondary); line-height: 1.65;
+        }
+        .cert-banner {
+            background: linear-gradient(135deg, rgba(0,229,255,0.06), rgba(167,139,250,0.06));
+            border: 1px solid rgba(0,229,255,0.2); border-radius: 12px;
+            padding: 28px; text-align: center; margin-top: 16px;
+        }
+
     </style>
 </head>
 <body>
@@ -218,13 +381,30 @@
     <!-- Header -->
     <header class="header rounded-lg mb-8" style="border-radius:8px;">
         <div style="display:flex; align-items:center; gap:16px;">
-            <div style="padding:8px; background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.3); border-radius:8px;">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+            <div style="padding:8px; background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.25); border-radius:8px;">
+                <svg width="22" height="22" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="14" cy="14" r="12" stroke="var(--accent-cyan)" stroke-width="1" stroke-opacity="0.4"/>
+                    <circle cx="14" cy="14" r="8" stroke="var(--accent-cyan)" stroke-width="1" stroke-opacity="0.6"/>
+                    <circle cx="14" cy="14" r="4" stroke="var(--accent-cyan)" stroke-width="1.5" stroke-opacity="0.9"/>
+                    <circle cx="14" cy="14" r="1.5" fill="var(--accent-cyan)"/>
+                    <line x1="14" y1="2" x2="14" y2="5" stroke="var(--accent-cyan)" stroke-width="1" stroke-opacity="0.5"/>
+                    <line x1="14" y1="23" x2="14" y2="26" stroke="var(--accent-cyan)" stroke-width="1" stroke-opacity="0.5"/>
+                    <line x1="2" y1="14" x2="5" y2="14" stroke="var(--accent-cyan)" stroke-width="1" stroke-opacity="0.5"/>
+                    <line x1="23" y1="14" x2="26" y2="14" stroke="var(--accent-cyan)" stroke-width="1" stroke-opacity="0.5"/>
+                    <line x1="14" y1="14" x2="24" y2="6" stroke="var(--accent-cyan)" stroke-width="1.5" stroke-opacity="0.9" stroke-linecap="round">
+                        <animateTransform attributeName="transform" type="rotate" from="0 14 14" to="360 14 14" dur="3s" repeatCount="indefinite"/>
+                    </line>
+                    <path d="M14 14 L24 6 A12 12 0 0 1 26 14" fill="var(--accent-cyan)" fill-opacity="0.08">
+                        <animateTransform attributeName="transform" type="rotate" from="0 14 14" to="360 14 14" dur="3s" repeatCount="indefinite"/>
+                    </path>
+                    <circle cx="21" cy="9" r="1.5" fill="var(--accent-cyan)" fill-opacity="0.9">
+                        <animateTransform attributeName="transform" type="rotate" from="0 14 14" to="360 14 14" dur="3s" repeatCount="indefinite"/>
+                        <animate attributeName="fill-opacity" values="0.9;0.2;0.9" dur="3s" repeatCount="indefinite"/>
+                    </circle>
                 </svg>
             </div>
             <div>
-                <div class="logo-text">Phish<span>Guard</span></div>
+                <div class="logo-text">Phish<span>Radar</span></div>
                 <div class="logo-sub">PHISHING SIMULATION LAB &nbsp;|&nbsp; CYBER AWARENESS TRAINING</div>
             </div>
         </div>
@@ -241,6 +421,20 @@
         </div>
     </header>
 
+    <!-- Tab Navigation -->
+    <div class="tab-nav">
+        <button class="tab-btn active" id="tab-sim" onclick="switchTab('sim')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+            SIMULATION LAB
+        </button>
+        <button class="tab-btn" id="tab-hygiene" onclick="switchTab('hygiene')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            CYBER HYGIENE GUIDE
+        </button>
+    </div>
+
+    <!-- ══ TAB: SIMULATION LAB ══ -->
+    <div id="panel-sim">
     <!-- Intro / Scenario Select (shown first) -->
     <div id="scenarioSelect">
         <div style="text-align:center; margin-bottom:32px;">
@@ -400,7 +594,240 @@
     </div>
 </div>
 
-<script>
+    </div><!-- /panel-sim -->
+
+    <!-- ══ TAB: CYBER HYGIENE ══ -->
+    <div id="panel-hygiene" style="display:none;">
+
+        <!-- Hero intro -->
+        <div style="text-align:center; margin-bottom:40px;">
+            <div style="display:inline-flex; align-items:center; justify-content:center; width:64px; height:64px; background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.2); border-radius:16px; margin-bottom:16px; font-size:2rem;">🛡️</div>
+            <div style="font-family:'Rajdhani'; font-size:2rem; font-weight:700; margin-bottom:8px;">Cyber Hygiene <span style="color:var(--accent-cyan);">Guide</span></div>
+            <div style="font-family:'Share Tech Mono'; font-size:0.7rem; color:var(--text-secondary); letter-spacing:0.1em; max-width:540px; margin:0 auto; line-height:1.8;">Your complete guide to spotting phishing emails, protecting yourself online, and building good security habits. Knowledge is your best defence.</div>
+        </div>
+
+        <!-- Section 1: How to Spot a Phishing Email -->
+        <div class="hygiene-section">
+            <div class="hygiene-section-title">
+                <span style="font-size:1.3rem;">🎣</span> How to Spot a Phishing Email
+            </div>
+            <div class="hygiene-section-sub">THE 8 WARNING SIGNS YOU MUST KNOW</div>
+
+            <div class="red-flag-grid">
+                <div class="red-flag-item">
+                    <span class="red-flag-emoji">📧</span>
+                    <div class="red-flag-text"><strong>Suspicious sender address</strong><br>The display name says "PayPal" but the actual email is <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="eb9b8a929b8a87c6988e889e99829f92ab8c868a8287c5888486">[email&#160;protected]</a> or paypa1.com. Always check the full address, not just the name.</div>
+                </div>
+                <div class="red-flag-item">
+                    <span class="red-flag-emoji">⏰</span>
+                    <div class="red-flag-text"><strong>Urgency and panic tactics</strong><br>"Your account will be deleted in 24 hours!" Attackers create panic so you act without thinking. Legitimate companies don't do this.</div>
+                </div>
+                <div class="red-flag-item">
+                    <span class="red-flag-emoji">🔗</span>
+                    <div class="red-flag-text"><strong>Suspicious or shortened URLs</strong><br>Hover over any link before clicking. If the URL doesn't match the company (e.g. bit.ly/bank-login), don't click it. Go directly to the website instead.</div>
+                </div>
+                <div class="red-flag-item">
+                    <span class="red-flag-emoji">👤</span>
+                    <div class="red-flag-text"><strong>Generic greetings</strong><br>"Dear Customer" or "Dear User" instead of your real name. Real companies that have your account know your name and use it.</div>
+                </div>
+                <div class="red-flag-item">
+                    <span class="red-flag-emoji">📎</span>
+                    <div class="red-flag-text"><strong>Unexpected attachments</strong><br>An invoice you didn't request, a "document" from someone you don't know. Attachments can contain malware that installs silently when opened.</div>
+                </div>
+                <div class="red-flag-item">
+                    <span class="red-flag-emoji">💳</span>
+                    <div class="red-flag-text"><strong>Requests for sensitive info</strong><br>No legitimate bank, government body, or company will ever ask for your password, PIN, or full card details via email. Ever.</div>
+                </div>
+                <div class="red-flag-item">
+                    <span class="red-flag-emoji">✍️</span>
+                    <div class="red-flag-text"><strong>Poor grammar and spelling</strong><br>Professional companies proofread their emails. Typos, awkward phrasing, and inconsistent formatting are signs of a rushed scam operation.</div>
+                </div>
+                <div class="red-flag-item">
+                    <span class="red-flag-emoji">🎁</span>
+                    <div class="red-flag-text"><strong>Too-good-to-be-true offers</strong><br>"You've won £500!" or "Claim your free iPhone." If you didn't enter a competition, you didn't win anything. These harvest your personal details.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: What To Do / Not Do -->
+        <div class="hygiene-section">
+            <div class="hygiene-section-title">
+                <span style="font-size:1.3rem;">⚖️</span> Do's and Don'ts
+            </div>
+            <div class="hygiene-section-sub">WHAT TO DO AND AVOID WHEN YOU RECEIVE A SUSPICIOUS EMAIL</div>
+
+            <div class="do-dont-row">
+                <div class="do-card">
+                    <div class="do-label">✓ DO THIS</div>
+                    <div class="hygiene-tip" style="background:rgba(0,255,136,0.04); border-color:rgba(0,255,136,0.08);">
+                        <span class="hygiene-tip-icon">🔍</span>
+                        <div class="hygiene-tip-text"><strong>Verify independently.</strong> If your bank emails you, close the email and go directly to your bank's website by typing the address yourself.</div>
+                    </div>
+                    <div class="hygiene-tip" style="background:rgba(0,255,136,0.04); border-color:rgba(0,255,136,0.08);">
+                        <span class="hygiene-tip-icon">📞</span>
+                        <div class="hygiene-tip-text"><strong>Call the company directly</strong> using the number on their official website — not the number in the suspicious email.</div>
+                    </div>
+                    <div class="hygiene-tip" style="background:rgba(0,255,136,0.04); border-color:rgba(0,255,136,0.08);">
+                        <span class="hygiene-tip-icon">🚩</span>
+                        <div class="hygiene-tip-text"><strong>Report phishing emails</strong> to your email provider. In Gmail, click the three dots → "Report phishing." This protects other users too.</div>
+                    </div>
+                    <div class="hygiene-tip" style="background:rgba(0,255,136,0.04); border-color:rgba(0,255,136,0.08);">
+                        <span class="hygiene-tip-icon">🗑️</span>
+                        <div class="hygiene-tip-text"><strong>Delete and move on.</strong> Once you've identified a phishing email, delete it immediately. Don't forward it to friends "to warn them" — that spreads it.</div>
+                    </div>
+                </div>
+                <div class="dont-card">
+                    <div class="dont-label">✗ NEVER DO THIS</div>
+                    <div class="hygiene-tip" style="background:rgba(255,45,85,0.04); border-color:rgba(255,45,85,0.08);">
+                        <span class="hygiene-tip-icon">🔑</span>
+                        <div class="hygiene-tip-text"><strong>Never enter your password</strong> on a page you reached by clicking a link in an email. Go to the site directly instead.</div>
+                    </div>
+                    <div class="hygiene-tip" style="background:rgba(255,45,85,0.04); border-color:rgba(255,45,85,0.08);">
+                        <span class="hygiene-tip-icon">💰</span>
+                        <div class="hygiene-tip-text"><strong>Never send gift cards or money</strong> to anyone you met online or via email. No legitimate employer, government body, or prize gives gift cards.</div>
+                    </div>
+                    <div class="hygiene-tip" style="background:rgba(255,45,85,0.04); border-color:rgba(255,45,85,0.08);">
+                        <span class="hygiene-tip-icon">📎</span>
+                        <div class="hygiene-tip-text"><strong>Never open unexpected attachments</strong> — especially .exe, .zip, .docm files. Even if the sender looks legitimate, their account could be compromised.</div>
+                    </div>
+                    <div class="hygiene-tip" style="background:rgba(255,45,85,0.04); border-color:rgba(255,45,85,0.08);">
+                        <span class="hygiene-tip-icon">🤫</span>
+                        <div class="hygiene-tip-text"><strong>Never keep it to yourself.</strong> If you almost fell for a phishing email, tell your family, friends, or colleagues. You might save someone else.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: If You Got Phished -->
+        <div class="hygiene-section">
+            <div class="hygiene-section-title">
+                <span style="font-size:1.3rem;">🚨</span> What To Do If You Got Phished
+            </div>
+            <div class="hygiene-section-sub">ACT FAST — EVERY MINUTE COUNTS</div>
+
+            <div class="warning-box">
+                <span class="warning-box-icon">⚡</span>
+                <div class="warning-box-text"><strong>Don't panic — but act immediately.</strong> If you clicked a link, entered credentials, or downloaded an attachment, follow these steps in order. The faster you act, the less damage occurs.</div>
+            </div>
+
+            <div class="step-flow">
+                <div class="step-item">
+                    <div class="step-num" style="background:rgba(255,45,85,0.15); border:1px solid rgba(255,45,85,0.3); color:var(--accent-red);">1</div>
+                    <div class="step-content">
+                        <div class="step-title">Disconnect from the internet immediately</div>
+                        <div class="step-desc">If you opened a malicious attachment, disconnect your WiFi or ethernet right away. This stops malware from sending your data to attackers or spreading across your network.</div>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num" style="background:rgba(255,165,0,0.15); border:1px solid rgba(255,165,0,0.3); color:var(--accent-yellow);">2</div>
+                    <div class="step-content">
+                        <div class="step-title">Change your passwords immediately</div>
+                        <div class="step-desc">Change the password for the account that was targeted first. Then change passwords for any other accounts that use the same password. Do this from a different, trusted device.</div>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num" style="background:rgba(255,215,0,0.15); border:1px solid rgba(255,215,0,0.3); color:var(--accent-yellow);">3</div>
+                    <div class="step-content">
+                        <div class="step-title">Enable Two-Factor Authentication (2FA)</div>
+                        <div class="step-desc">Even if an attacker has your password, 2FA means they still can't log in without your phone. Enable it on every important account — email, banking, social media.</div>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num" style="background:rgba(0,168,255,0.15); border:1px solid rgba(0,168,255,0.3); color:var(--accent-blue);">4</div>
+                    <div class="step-content">
+                        <div class="step-title">Contact your bank if financial info was shared</div>
+                        <div class="step-desc">Call your bank's fraud line immediately. They can freeze your card, monitor for suspicious transactions, and reverse unauthorized charges if you act fast enough.</div>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num" style="background:rgba(0,255,136,0.15); border:1px solid rgba(0,255,136,0.3); color:var(--accent-green);">5</div>
+                    <div class="step-content">
+                        <div class="step-title">Run a full antivirus scan</div>
+                        <div class="step-desc">Reconnect to the internet and run a full system scan with your antivirus. If you don't have one, Windows Defender (built into Windows) is reliable. Remove anything flagged.</div>
+                    </div>
+                </div>
+                <div class="step-item">
+                    <div class="step-num" style="background:rgba(167,139,250,0.15); border:1px solid rgba(167,139,250,0.3); color:var(--accent-purple);">6</div>
+                    <div class="step-content">
+                        <div class="step-title">Report to authorities and your email provider</div>
+                        <div class="step-desc">In Nigeria, report to the EFCC cybercrime unit or send to <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f18394819e8385b194979292df969e87df9f96">[email&#160;protected]</a>. Also report to your email provider so they can warn others receiving the same phishing campaign.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Password Hygiene -->
+        <div class="hygiene-section">
+            <div class="hygiene-section-title">
+                <span style="font-size:1.3rem;">🔐</span> Password & Account Security
+            </div>
+            <div class="hygiene-section-sub">BUILDING STRONG DEFENCES BEFORE AN ATTACK HAPPENS</div>
+
+            <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:16px;">
+                <div class="hygiene-card">
+                    <div class="hygiene-card-accent" style="background: linear-gradient(90deg, var(--accent-cyan), transparent);"></div>
+                    <div class="hygiene-card-icon" style="background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.2);">🔑</div>
+                    <div class="hygiene-card-title">Strong Passwords</div>
+                    <div class="hygiene-card-body">Use at least 12 characters mixing letters, numbers, and symbols. Never use your name, birthday, or "password123". A passphrase like <span style="color:var(--accent-cyan); font-family:'Share Tech Mono'; font-size:0.75rem;">Coffee!Sunrise#2026</span> is strong and memorable.</div>
+                </div>
+                <div class="hygiene-card">
+                    <div class="hygiene-card-accent" style="background: linear-gradient(90deg, var(--accent-green), transparent);"></div>
+                    <div class="hygiene-card-icon" style="background:rgba(0,255,136,0.08); border:1px solid rgba(0,255,136,0.2);">📱</div>
+                    <div class="hygiene-card-title">Two-Factor Authentication</div>
+                    <div class="hygiene-card-body">Enable 2FA on every account that supports it. Use an authenticator app (Google Authenticator, Authy) rather than SMS where possible. SMS can be intercepted via SIM swapping.</div>
+                </div>
+                <div class="hygiene-card">
+                    <div class="hygiene-card-accent" style="background: linear-gradient(90deg, var(--accent-purple), transparent);"></div>
+                    <div class="hygiene-card-icon" style="background:rgba(167,139,250,0.08); border:1px solid rgba(167,139,250,0.2);">🗂️</div>
+                    <div class="hygiene-card-title">Password Manager</div>
+                    <div class="hygiene-card-body">Use a password manager like Bitwarden (free) or 1Password. It generates unique passwords for every site and remembers them for you. This means one compromised password doesn't affect all your accounts.</div>
+                </div>
+                <div class="hygiene-card">
+                    <div class="hygiene-card-accent" style="background: linear-gradient(90deg, var(--accent-yellow), transparent);"></div>
+                    <div class="hygiene-card-icon" style="background:rgba(255,215,0,0.08); border:1px solid rgba(255,215,0,0.2);">🔄</div>
+                    <div class="hygiene-card-title">Regular Security Checkups</div>
+                    <div class="hygiene-card-body">Visit <span style="color:var(--accent-cyan); font-family:'Share Tech Mono'; font-size:0.75rem;">haveibeenpwned.com</span> to check if your email appears in any data breaches. Review which apps have access to your Google/Microsoft account and remove ones you no longer use.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 5: Daily Habits Checklist -->
+        <div class="hygiene-section">
+            <div class="hygiene-section-title">
+                <span style="font-size:1.3rem;">✅</span> Daily Security Habits Checklist
+            </div>
+            <div class="hygiene-section-sub">CHECK THESE HABITS — CLICK TO MARK AS DONE</div>
+
+            <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:16px;">
+                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:20px;">
+                    <div style="font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--accent-cyan); letter-spacing:0.15em; margin-bottom:14px;">BEFORE CLICKING ANY EMAIL LINK</div>
+                    <div id="checklist-email"></div>
+                </div>
+                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:20px;">
+                    <div style="font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--accent-purple); letter-spacing:0.15em; margin-bottom:14px;">GENERAL ACCOUNT SECURITY</div>
+                    <div id="checklist-account"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Completion Banner -->
+        <div class="cert-banner">
+            <div style="font-size:2.5rem; margin-bottom:12px;">🛡️</div>
+            <div style="font-family:'Rajdhani'; font-size:1.4rem; font-weight:700; margin-bottom:8px; color:var(--accent-cyan);">You're Now Better Protected</div>
+            <div style="font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--text-secondary); letter-spacing:0.1em; max-width:480px; margin:0 auto 20px; line-height:1.8;">Knowledge is the most powerful security tool. Share this guide with someone you care about — most phishing attacks succeed because people simply don't know what to look for.</div>
+            <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
+                <button onclick="switchTab('sim')" style="font-family:'Rajdhani'; font-weight:600; font-size:0.9rem; letter-spacing:0.1em; padding:12px 24px; border-radius:8px; cursor:pointer; background:rgba(0,229,255,0.1); border:1px solid rgba(0,229,255,0.3); color:var(--accent-cyan); transition:all 0.2s;" onmouseover="this.style.background='rgba(0,229,255,0.18)'" onmouseout="this.style.background='rgba(0,229,255,0.1)'">
+                    🎣 Test Your Skills in the Sim Lab
+                </button>
+                <a href="/" style="font-family:'Rajdhani'; font-weight:600; font-size:0.9rem; letter-spacing:0.1em; padding:12px 24px; border-radius:8px; cursor:pointer; background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.3); color:var(--accent-purple); transition:all 0.2s; text-decoration:none;">← Back to SOC Dashboard</a>
+            </div>
+        </div>
+
+    </div><!-- /panel-hygiene -->
+
+</div><!-- /container -->
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 const SCENARIOS = {
     bank: {
         title: "Bank Account Alert",
@@ -522,7 +949,7 @@ function loadScenario(key) {
             <div class="toolbar-dot" style="background:#ff5f57;"></div>
             <div class="toolbar-dot" style="background:#ffbd2e;"></div>
             <div class="toolbar-dot" style="background:#28c840;"></div>
-            <span style="margin-left:12px; font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--text-secondary); letter-spacing:0.1em;">INBOX — PHISHGUARD MAIL CLIENT</span>
+            <span style="margin-left:12px; font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--text-secondary); letter-spacing:0.1em;">INBOX — PHISHRADAR MAIL CLIENT</span>
         </div>
         <div class="email-header-row">
             <span class="email-field-label">FROM</span>
@@ -605,6 +1032,49 @@ function updateStats() {
     flagsFound = document.querySelectorAll('.flag-highlight.revealed').length;
     document.getElementById('flagsFoundDisplay').textContent = flagsFound;
 }
-</script>
-</body>
-</html>
+
+// ── Tab Switching ─────────────────────────────────────────────────────────────
+function switchTab(tab) {
+    document.getElementById('panel-sim').style.display      = tab === 'sim'     ? 'block' : 'none';
+    document.getElementById('panel-hygiene').style.display  = tab === 'hygiene' ? 'block' : 'none';
+    document.getElementById('tab-sim').classList.toggle('active',     tab === 'sim');
+    document.getElementById('tab-hygiene').classList.toggle('active', tab === 'hygiene');
+}
+
+// ── Interactive Checklists ────────────────────────────────────────────────────
+const CHECKLIST_EMAIL = [
+    "Check the sender's full email address — not just the display name",
+    "Hover over any link to see the real destination URL before clicking",
+    "Look for urgency language like 'Act now' or '24 hours to respond'",
+    "Check for generic greetings like 'Dear Customer' instead of your name",
+    "Verify unexpected requests by contacting the company directly",
+    "Never enter your password on a page reached through an email link",
+];
+const CHECKLIST_ACCOUNT = [
+    "Enable Two-Factor Authentication on your email account",
+    "Use a unique password for every important account",
+    "Check haveibeenpwned.com for your email in data breaches",
+    "Review which apps have access to your Google or Microsoft account",
+    "Keep your phone OS and apps updated — patches fix security holes",
+    "Use a password manager to generate and store strong passwords",
+];
+
+function buildChecklist(items, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+    items.forEach((text, i) => {
+        const div = document.createElement('div');
+        div.className = 'checklist-item';
+        div.innerHTML = `
+            <div class="checklist-check" id="chk-${containerId}-${i}" onclick="toggleCheck('${containerId}', ${i})"></div>
+            <div class="checklist-text" id="txt-${containerId}-${i}" onclick="toggleCheck('${containerId}', ${i})">${text}</div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function toggleCheck(containerId, i) {
+    const chk = document.getElementById(`chk-${containerId}-${i}`);
+    const txt = document.getElementById(`txt-${containerId}-${i}`);
+    chk.classList.toggle('checked');

@@ -5,7 +5,7 @@ import os
 import re
 from email.header import decode_header
 
-import anthropic
+from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,16 +14,16 @@ USERNAME    = os.getenv("EMAIL_USER")
 PASSWORD    = os.getenv("EMAIL_PASS")
 IMAP_SERVER = "imap.gmail.com"
 
-# Instantiate the Anthropic client once (reads ANTHROPIC_API_KEY from env)
-_anthropic_client = None
+# Instantiate the Groq client once (reads GROQ_API_KEY from env)
+_groq_client = None
 
-def get_anthropic_client():
-    global _anthropic_client
-    if _anthropic_client is None:
-        api_key = os.getenv("ANTHROPIC_API_KEY")
+def get_groq_client():
+    global _groq_client
+    if _groq_client is None:
+        api_key = os.getenv("GROQ_API_KEY")
         if api_key:
-            _anthropic_client = anthropic.Anthropic(api_key=api_key)
-    return _anthropic_client
+            _groq_client = Groq(api_key=api_key)
+    return _groq_client
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -79,10 +79,10 @@ def check_lookalike_domain(domain: str) -> str | None:
 
 
 # ══════════════════════════════════════════════════════════════════
-#  ENGINE 1 — CLAUDE AI ANALYSIS
+#  ENGINE 1 — GROQ AI ANALYSIS
 # ══════════════════════════════════════════════════════════════════
 
-AI_SYSTEM_PROMPT = """You are PhishGuard, an expert cybersecurity AI specializing in
+AI_SYSTEM_PROMPT = """You are phishradar, an expert cybersecurity AI specializing in
 phishing email detection. You analyze emails with the precision of a senior SOC analyst.
 
 When given an email's subject, sender, and body, you must respond with ONLY a valid
@@ -94,7 +94,7 @@ The JSON must have exactly these fields:
   "status": <"SAFE" | "SUSPICIOUS" | "PHISHING DETECTED">,
   "explanation": <one clear sentence summarizing the verdict>,
   "red_flags": [<list of short strings, each a specific red flag found, empty list if none>],
-  "engine": "claude-ai"
+  "engine": "groq-ai"
 }
 
 Scoring guide:
@@ -102,29 +102,37 @@ Scoring guide:
 - 40-69: SUSPICIOUS — some indicators but not conclusive
 - 70-100: PHISHING DETECTED — strong evidence of phishing attempt
 
-Key signals to consider:
-- Sender domain legitimacy (typosquatting, lookalike domains, free providers used for auth)
-- Urgency / fear / threat language in subject or body
-- Generic greetings (Dear Customer, Dear User)
-- Mismatched branding (body claims to be PayPal, sender is not from paypal.com)
-- Suspicious or shortened links (bit.ly, tinyurl, etc.)
-- Requests for credentials, payment info, or personal data
-- Grammar / spelling inconsistencies suggesting non-professional origin
-- Unusual sending patterns
+CRITICAL RULES — read carefully before scoring:
+1. Personal emails between individuals (friend-to-friend, family, colleagues) sent from
+   Gmail, Yahoo, Outlook etc. are NORMAL and should score 0-20 (SAFE). Using a free
+   email provider is NOT a red flag for personal communication.
+2. Only flag free providers as suspicious when they are IMPERSONATING a company or
+   brand (e.g. paypal-support@gmail.com claiming to be PayPal).
+3. A plain conversation email with no urgency, no links, no credential requests = SAFE.
+4. Do NOT penalise emails just because they come from Gmail or similar providers.
 
-Be precise. Trusted companies like Google, Microsoft, PayPal DO send legitimate
-security emails — don't flag them unless there are real red flags."""
+Key signals to look for (only flag when clearly present):
+- Sender impersonating a brand from a non-brand domain (e.g. amazon-security@gmail.com)
+- Urgency / fear / threat language: "account suspended", "verify within 24 hours"
+- Generic greetings combined with financial requests: "Dear Customer, click here to pay"
+- Shortened or obfuscated URLs (bit.ly, tinyurl, suspicious redirects)
+- Requests for passwords, PINs, card numbers, or personal data via email
+- Typosquatted domains: micros0ft.com, paypa1.com, arnazon.com
+
+Be conservative. When in doubt, score lower. A false positive (flagging a safe email)
+is worse than a false negative for user trust. Only output PHISHING DETECTED when
+there is strong, clear evidence of an attack."""
 
 
-def analyze_with_claude(subject: str, sender: str, body: str) -> tuple[int, str, str, str]:
+def analyze_with_groq(subject: str, sender: str, body: str) -> tuple[int, str, str, str]:
     """
-    Calls the Claude API to analyze the email.
+    Calls the Groq API to analyze the email.
     Returns (risk_score, status, explanation, engine_label).
     Raises an exception if the API call fails so caller can fallback.
     """
-    client = get_anthropic_client()
+    client = get_groq_client()
     if client is None:
-        raise ValueError("ANTHROPIC_API_KEY not set")
+        raise ValueError("GROQ_API_KEY not set")
 
     # Truncate body to keep token usage reasonable
     body_preview = body[:1500] if body else "(empty body)"
@@ -136,14 +144,17 @@ SUBJECT: {subject}
 BODY:
 {body_preview}"""
 
-    response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
+    response = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[
+            {"role": "system", "content": AI_SYSTEM_PROMPT},
+            {"role": "user",   "content": user_message},
+        ],
+        temperature=0.1,
         max_tokens=512,
-        system=AI_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_message}],
     )
 
-    raw = response.content[0].text.strip()
+    raw = response.choices[0].message.content.strip()
 
     # Strip markdown fences if the model included them
     raw = re.sub(r'^```(?:json)?\s*', '', raw)
@@ -161,7 +172,7 @@ BODY:
         flags_str = " | ".join(red_flags)
         explanation = f"{explanation} — Red flags: {flags_str}"
 
-    return score, status, explanation, "claude-ai"
+    return score, status, explanation, "groq-ai"
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -193,11 +204,13 @@ def analyze_with_keywords(subject: str, sender: str, body: str) -> tuple[int, st
 
     IMPERSONATION_WORDS = ["support","security","admin","noreply","alert","helpdesk"]
     if any(w in sender_lower for w in IMPERSONATION_WORDS) and not trusted:
-        if any(fp in sender_domain for fp in FREE_EMAIL_PROVIDERS):
-            risk_score += 55
-            reasons.append(f"Authority name + free email provider ({sender_domain})")
-        else:
-            risk_score += 30
+        # Only penalise if the body also mentions a brand — pure impersonation signal
+        body_mentions_brand = any(b in body_lower for b in ["paypal","amazon","microsoft","apple","google","bank","account"])
+        if any(fp in sender_domain for fp in FREE_EMAIL_PROVIDERS) and body_mentions_brand:
+            risk_score += 45
+            reasons.append(f"Authority name + free email provider impersonating a brand ({sender_domain})")
+        elif not any(fp in sender_domain for fp in FREE_EMAIL_PROVIDERS):
+            risk_score += 25
             reasons.append(f"Authority-implying sender from unverified domain: {sender_domain}")
 
     brand = check_lookalike_domain(sender_domain)
@@ -251,31 +264,35 @@ def analyze_with_keywords(subject: str, sender: str, body: str) -> tuple[int, st
 #  PUBLIC API — single entry point for app.py
 # ══════════════════════════════════════════════════════════════════
 
-# Module-level flag — set to True after first credit/auth failure to skip future API calls
-_claude_disabled = False
+# Module-level flag — set to True after first API failure to skip future calls
+_groq_disabled = False
 
 def analyze_email(subject: str, sender: str, body: str) -> tuple[int, str, str, str]:
     """
-    Tries Claude AI first; falls back to keyword engine if unavailable.
-    Once a credit/auth error occurs, skips Claude for the rest of the session.
+    Tries Groq AI first; falls back to keyword engine if unavailable.
+    Once an auth/quota error occurs, skips Groq for the rest of the session.
     Returns (risk_score, status, explanation, engine_used).
     """
-    global _claude_disabled
+    global _groq_disabled
 
-    # Skip Claude entirely if no key or already failed this session
-    if _claude_disabled or not os.getenv("ANTHROPIC_API_KEY"):
+    # Skip Groq entirely if no key or already failed this session
+    if _groq_disabled or not os.getenv("GROQ_API_KEY"):
         return analyze_with_keywords(subject, sender, body)
 
     try:
-        return analyze_with_claude(subject, sender, body)
+        return analyze_with_groq(subject, sender, body)
     except Exception as e:
         err_str = str(e)
-        # Permanently disable for this session on credit/auth errors (no point retrying)
-        if 'credit' in err_str.lower() or '400' in err_str or '401' in err_str or '403' in err_str:
-            _claude_disabled = True
-            print(f"[PhishGuard] Claude disabled for this session ({e}) — using keyword engine.")
+        # Rate limit (429) — wait briefly and fall back for this call only
+        if '429' in err_str or 'rate_limit' in err_str.lower():
+            print(f"[phishradar] Groq rate limit — using keyword engine for this email.")
+            return analyze_with_keywords(subject, sender, body)
+        # Auth/key errors — permanently disable for session (no point retrying)
+        elif any(x in err_str.lower() for x in ['401', '403', 'api_key', 'invalid']):
+            _groq_disabled = True
+            print(f"[phishradar] Groq disabled for this session ({e}) — using keyword engine.")
         else:
-            print(f"[PhishGuard] Claude API error ({e}), using keyword engine.")
+            print(f"[phishradar] Groq API error ({e}), using keyword engine.")
         return analyze_with_keywords(subject, sender, body)
 
 
@@ -298,11 +315,11 @@ def send_phishing_alert(threat_email: dict, alert_recipient: str = None) -> bool
     recipient  = alert_recipient or smtp_user
 
     if not smtp_user or not smtp_pass:
-        print("[PhishGuard] Alert skipped — EMAIL_USER/EMAIL_PASS not set")
+        print("[phishradar] Alert skipped — EMAIL_USER/EMAIL_PASS not set")
         return False
 
     try:
-        subject_line = f"⚠ PhishGuard Alert: Phishing Detected — {threat_email.get('subject', 'Unknown')[:50]}"
+        subject_line = f"⚠ phishradar Alert: Phishing Detected — {threat_email.get('subject', 'Unknown')[:50]}"
 
         html_body = f"""<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
@@ -321,7 +338,7 @@ def send_phishing_alert(threat_email: dict, alert_recipient: str = None) -> bool
   .foot{{padding:20px 32px;background:rgba(0,0,0,.2);font-size:11px;color:#4a5568;text-align:center;}}
 </style></head><body>
 <div class="wrapper"><div class="card">
-  <div class="hdr"><h1>⚠ PHISHING THREAT DETECTED</h1><p>PhishGuard Security Operations Center — Automated Alert</p></div>
+  <div class="hdr"><h1>⚠ PHISHING THREAT DETECTED</h1><p>phishradar Security Operations Center — Automated Alert</p></div>
   <div class="body">
     <div class="score">Risk Score: {threat_email.get('risk_score', 0)}%</div>
     <div class="row"><div class="lbl">Malicious Sender</div>{threat_email.get('sender','Unknown')}</div>
@@ -337,12 +354,12 @@ def send_phishing_alert(threat_email: dict, alert_recipient: str = None) -> bool
     </p>
     <a href="http://127.0.0.1:5000" class="btn">VIEW FULL SOC DASHBOARD</a>
   </div>
-  <div class="foot">Automated security alert from PhishGuard SOC v2.0</div>
+  <div class="foot">Automated security alert from phishradar SOC</div>
 </div></div></body></html>"""
 
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject_line
-        msg['From']    = f"PhishGuard SOC <{smtp_user}>"
+        msg['From']    = f"phishradar SOC <{smtp_user}>"
         msg['To']      = recipient
         msg.attach(MIMEText(html_body, 'html'))
 
@@ -350,11 +367,11 @@ def send_phishing_alert(threat_email: dict, alert_recipient: str = None) -> bool
             server.login(smtp_user, smtp_pass)
             server.sendmail(smtp_user, recipient, msg.as_string())
 
-        print(f"[PhishGuard] Alert sent to {recipient} for: {threat_email.get('subject','')[:40]}")
+        print(f"[phishradar] Alert sent to {recipient} for: {threat_email.get('subject','')[:40]}")
         return True
 
     except Exception as e:
-        print(f"[PhishGuard] Alert send failed: {e}")
+        print(f"[phishradar] Alert send failed: {e}")
         return False
 
 
@@ -407,7 +424,7 @@ def fetch_latest_emails(limit: int = 5) -> list[dict] | None:
                 score, threat_status, explanation, engine = analyze_email(subject, sender, body)
 
                 email_entry = {
-                    "msg_id":      str(email_id.decode()),
+                    "msg_id":      str(e_id.decode()),
                     "subject":     subject,
                     "sender":      sender,
                     "status":      threat_status,
@@ -421,7 +438,7 @@ def fetch_latest_emails(limit: int = 5) -> list[dict] | None:
         return email_data_list
 
     except Exception as e:
-        print(f"[PhishGuard] IMAP error: {e}")
+        print(f"[phishradar] IMAP error: {e}")
         return None
 
 
@@ -458,7 +475,7 @@ def fetch_emails_with_token(token_info: dict, limit: int = 5):
         ).execute()
 
         messages = result.get('messages', [])
-        print(f"[PhishGuard] Gmail API found {len(messages)} messages in inbox")
+        print(f"[phishradar] Gmail API found {len(messages)} messages in inbox")
         email_data_list = []
 
         for msg_ref in messages:
@@ -505,6 +522,6 @@ def fetch_emails_with_token(token_info: dict, limit: int = 5):
 
     except Exception as e:
         import traceback
-        print(f"[PhishGuard] Gmail API error: {e}")
+        print(f"[phishradar] Gmail API error: {e}")
         traceback.print_exc()
         return None

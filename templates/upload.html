@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PhishGuard — Upload Email</title>
+    <title>PhishRadar — Upload Email</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -178,13 +178,30 @@
     <!-- Header -->
     <header class="header rounded-lg mb-8" style="border-radius:8px;">
         <div style="display:flex; align-items:center; gap:16px;">
-            <div style="padding:8px; background:rgba(0,168,255,0.1); border:1px solid rgba(0,168,255,0.3); border-radius:8px;">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            <div style="padding:8px; background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.25); border-radius:8px;">
+                <svg width="22" height="22" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="14" cy="14" r="12" stroke="var(--accent-cyan)" stroke-width="1" stroke-opacity="0.4"/>
+                    <circle cx="14" cy="14" r="8" stroke="var(--accent-cyan)" stroke-width="1" stroke-opacity="0.6"/>
+                    <circle cx="14" cy="14" r="4" stroke="var(--accent-cyan)" stroke-width="1.5" stroke-opacity="0.9"/>
+                    <circle cx="14" cy="14" r="1.5" fill="var(--accent-cyan)"/>
+                    <line x1="14" y1="2" x2="14" y2="5" stroke="var(--accent-cyan)" stroke-width="1" stroke-opacity="0.5"/>
+                    <line x1="14" y1="23" x2="14" y2="26" stroke="var(--accent-cyan)" stroke-width="1" stroke-opacity="0.5"/>
+                    <line x1="2" y1="14" x2="5" y2="14" stroke="var(--accent-cyan)" stroke-width="1" stroke-opacity="0.5"/>
+                    <line x1="23" y1="14" x2="26" y2="14" stroke="var(--accent-cyan)" stroke-width="1" stroke-opacity="0.5"/>
+                    <line x1="14" y1="14" x2="24" y2="6" stroke="var(--accent-cyan)" stroke-width="1.5" stroke-opacity="0.9" stroke-linecap="round">
+                        <animateTransform attributeName="transform" type="rotate" from="0 14 14" to="360 14 14" dur="3s" repeatCount="indefinite"/>
+                    </line>
+                    <path d="M14 14 L24 6 A12 12 0 0 1 26 14" fill="var(--accent-cyan)" fill-opacity="0.08">
+                        <animateTransform attributeName="transform" type="rotate" from="0 14 14" to="360 14 14" dur="3s" repeatCount="indefinite"/>
+                    </path>
+                    <circle cx="21" cy="9" r="1.5" fill="var(--accent-cyan)" fill-opacity="0.9">
+                        <animateTransform attributeName="transform" type="rotate" from="0 14 14" to="360 14 14" dur="3s" repeatCount="indefinite"/>
+                        <animate attributeName="fill-opacity" values="0.9;0.2;0.9" dur="3s" repeatCount="indefinite"/>
+                    </circle>
                 </svg>
             </div>
             <div>
-                <div class="logo-text">Phish<span>Guard</span></div>
+                <div class="logo-text">Phish<span>Radar</span></div>
                 <div class="logo-sub">UPLOAD EMAIL FOR ANALYSIS</div>
             </div>
         </div>
@@ -265,8 +282,8 @@
             </div>
         </div>
         <div style="margin-bottom:10px;">
-            {% if result.engine is defined and result.engine == 'claude-ai' %}
-            <span style="font-family:'Share Tech Mono'; font-size:0.6rem; letter-spacing:0.15em; color:#a78bfa; background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.3); padding:3px 10px; border-radius:3px;">✦ CLAUDE AI ENGINE</span>
+            {% if result.engine is defined and result.engine == 'groq-ai' %}
+            <span style="font-family:'Share Tech Mono'; font-size:0.6rem; letter-spacing:0.15em; color:#a78bfa; background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.3); padding:3px 10px; border-radius:3px;">✦ GROQ AI ENGINE</span>
             {% else %}
             <span style="font-family:'Share Tech Mono'; font-size:0.6rem; letter-spacing:0.15em; color:var(--text-mono); background:rgba(74,158,255,0.1); border:1px solid rgba(74,158,255,0.2); padding:3px 10px; border-radius:3px;">RULE ENGINE</span>
             {% endif %}

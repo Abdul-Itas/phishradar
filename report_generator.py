@@ -1,5 +1,5 @@
 """
-PhishGuard — PDF Report Generator
+phishradar — PDF Report Generator
 Generates a professional threat report using ReportLab.
 """
 
@@ -44,7 +44,7 @@ def _status_label(score: int) -> str:
     return 'SAFE'
 
 
-# ── Paragraph styles ─────────────────────────────────────────────────────────
+# ── Paragraph styles
 def _styles():
     return {
         'title': ParagraphStyle(
@@ -149,9 +149,9 @@ def _make_canvas_callback(generated_at: str):
         # Logo text
         canvas.setFillColor(WHITE)
         canvas.setFont('Helvetica-Bold', 13)
-        canvas.drawString(14*mm, H - 12*mm, 'PhishGuard')
+        canvas.drawString(14*mm, H - 12*mm, 'phishradar')
         canvas.setFillColor(ACCENT_CYAN)
-        canvas.drawString(14*mm + canvas.stringWidth('PhishGuard', 'Helvetica-Bold', 13),
+        canvas.drawString(14*mm + canvas.stringWidth('phishradar', 'Helvetica-Bold', 13),
                           H - 12*mm, ' SOC')
         # Right: report label
         canvas.setFillColor(TEXT_SEC)
@@ -166,7 +166,7 @@ def _make_canvas_callback(generated_at: str):
         # Footer text
         canvas.setFillColor(TEXT_SEC)
         canvas.setFont('Helvetica', 7)
-        canvas.drawString(14*mm, 4*mm, f'Generated: {generated_at}  |  PhishGuard Security Operations Center v2.0')
+        canvas.drawString(14*mm, 4*mm, f'Generated: {generated_at}  |  phishradar Security Operations Center v2.0')
         canvas.drawRightString(W - 14*mm, 4*mm, f'Page {doc.page}')
 
     return on_page
@@ -189,8 +189,8 @@ def generate_report(emails: list, connected_email: str = None) -> bytes:
         rightMargin=margin,
         topMargin=22 * mm,
         bottomMargin=14 * mm,
-        title='PhishGuard Threat Report',
-        author='PhishGuard SOC',
+        title='phishradar Threat Report',
+        author='phishradar SOC',
     )
 
     S = _styles()
@@ -380,7 +380,7 @@ def generate_report(emails: list, connected_email: str = None) -> bytes:
     # ── Footer note ──────────────────────────────────────────────────────────
     story.append(Spacer(1, 4*mm))
     story.append(Paragraph(
-        'This report was generated automatically by PhishGuard SOC v2.0. '
+        'This report was generated automatically by phishradar SOC '
         'Results are based on AI-assisted pattern analysis and should be reviewed by a security professional for critical decisions.',
         S['small']
     ))
