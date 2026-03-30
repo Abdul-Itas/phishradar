@@ -827,7 +827,8 @@
 
 </div><!-- /container -->
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
+<script>
 const SCENARIOS = {
     bank: {
         title: "Bank Account Alert",
@@ -1078,3 +1079,18 @@ function toggleCheck(containerId, i) {
     const chk = document.getElementById(`chk-${containerId}-${i}`);
     const txt = document.getElementById(`txt-${containerId}-${i}`);
     chk.classList.toggle('checked');
+    txt.classList.toggle('checked');
+}
+
+function initChecklists() {
+    buildChecklist(CHECKLIST_EMAIL, 'checklist-email');
+    buildChecklist(CHECKLIST_ACCOUNT, 'checklist-account');
+}
+
+// Initialize checklists when the page loads
+window.onload = function() {
+    initChecklists();
+};
+</script>
+</body>
+</html>

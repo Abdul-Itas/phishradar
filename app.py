@@ -4,12 +4,16 @@ import email as email_lib
 from email.header import decode_header
 
 from flask import Flask, render_template, render_template_string, request, redirect, url_for, session, make_response
+from werkzeug.middleware.proxy_fix import ProxyFix
 from email_scanner import fetch_latest_emails, analyze_email, fetch_emails_with_token
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 # OAuth environment flags — must be set before any OAuth flow runs
-os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'  # Allow HTTP in dev
+# Allow HTTP only in local dev — Railway uses HTTPS so this is safe to conditionally set
+if os.environ.get('RAILWAY_ENVIRONMENT') is None:
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'  # Allow scope differences
 app.secret_key = os.getenv("FLASK_SECRET", "phishradar-dev-secret")
 
