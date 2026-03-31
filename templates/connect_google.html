@@ -151,7 +151,7 @@
                 </svg>
             </div>
             <div>
-                <div class="logo-text">Phish<span>Radar</span></div>
+                <div class="logo-text">Phish<span>Guard</span></div>
                 <div class="logo-sub">CONNECT GMAIL INBOX</div>
             </div>
         </div>
@@ -258,7 +258,7 @@
         </svg>
         <div style="font-family:'Share Tech Mono'; font-size:0.7rem; color:var(--accent-red); letter-spacing:0.05em; line-height:1.6;">
             Google login failed. Please try again.<br>
-            Make sure your redirect URI in Google Cloud Console is: http://127.0.0.1:5000/google-callback
+            Make sure your redirect URI in Google Cloud Console is: {{ redirect_uri }}
         </div>
     </div>
     {% endif %}
