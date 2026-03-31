@@ -210,7 +210,7 @@ def google_login():
             "https://www.googleapis.com/auth/userinfo.email",
             "openid",
         ],
-        redirect_uri='http://127.0.0.1:5000/google-callback',
+        redirect_uri='https://phishradar.up.railway.app/google-callback',
     )
 
     # Generate PKCE code verifier and store in session
@@ -258,7 +258,7 @@ def google_callback():
             "https://www.googleapis.com/auth/userinfo.email",
             "openid",
         ],
-        redirect_uri='http://127.0.0.1:5000/google-callback',
+        redirect_uri='https://phishradar.up.railway.app/google-callback',
         state=session.get('oauth_state'),
     )
 
