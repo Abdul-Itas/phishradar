@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>PhishRadar SOC — Threat Intelligence Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -481,6 +481,214 @@
         .email-row:nth-child(4n+5), .analysis-row:nth-child(4n+6) { animation-delay: 0.15s; }
         .email-row:nth-child(4n+7), .analysis-row:nth-child(4n+8) { animation-delay: 0.2s; }
         .email-row:nth-child(4n+9), .analysis-row:nth-child(4n+10) { animation-delay: 0.25s; }
+
+        /* ─── RESPONSIVE / MOBILE ─── */
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .metric-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+
+            .header {
+                padding: 12px 16px;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .logo-text { font-size: 1.5rem; }
+            .logo-sub  { font-size: 0.55rem; }
+
+            .container.mx-auto {
+                padding-left: 12px !important;
+                padding-right: 12px !important;
+                padding-top: 12px !important;
+            }
+
+            /* Email table — hide sender column, keep score/subject/status */
+            .email-table thead th:nth-child(2),
+            .email-table tbody td:nth-child(2) {
+                display: none;
+            }
+
+            /* Shrink subject text */
+            .subject-text {
+                font-size: 0.8rem;
+            }
+
+            /* Score ring smaller */
+            .score-ring {
+                width: 40px;
+                height: 40px;
+                font-size: 0.8rem;
+            }
+
+            /* Table padding tighter */
+            .email-table td,
+            .email-table th {
+                padding: 10px 12px;
+            }
+
+            /* Analysis row full width */
+            .analysis-row td {
+                padding: 0 12px 12px 12px;
+            }
+
+            /* Panel header wrap */
+            .panel-header {
+                flex-wrap: wrap;
+                gap: 8px;
+                padding: 12px 16px;
+            }
+
+            /* Metric card smaller padding */
+            .metric-card {
+                padding: 14px;
+            }
+
+            .metric-value { font-size: 2rem; }
+
+            /* Status badge compact */
+            .status-badge {
+                font-size: 0.6rem;
+                padding: 4px 8px;
+            }
+
+            /* Left panel goes full width and scrolls horizontally if needed */
+            #chartWrap { padding: 12px 16px; }
+        }
+
+        @media (max-width: 480px) {
+            .metric-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+
+            .logo-text { font-size: 1.3rem; }
+
+            /* Stack header items */
+            .header > div:last-child {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .metric-value { font-size: 1.8rem; }
+
+            /* PDF + refresh buttons stack */
+            .panel-header > div {
+                flex-wrap: wrap;
+            }
+
+            /* Tighten analysis content */
+            .analysis-content {
+                font-size: 0.65rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .actions-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        /* ─── RESPONSIVE MOBILE ─── */
+        @media (max-width: 768px) {
+            .container { padding: 0 12px !important; }
+
+            /* Header stacks vertically on mobile */
+            .header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 12px !important;
+                padding: 14px 16px !important;
+            }
+            .header > div:last-child {
+                width: 100%;
+                justify-content: space-between !important;
+            }
+
+            /* Metric cards — 2 columns on mobile */
+            .metric-grid-override {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+
+            /* Main layout — stack vertically */
+            .main-grid-override {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Left panel goes below email feed on mobile */
+            .left-panel-override {
+                order: 2;
+            }
+            .right-panel-override {
+                order: 1;
+            }
+
+            /* Email table — hide sender column on mobile */
+            .email-table th:nth-child(2),
+            .email-table td:nth-child(2) {
+                display: none;
+            }
+
+            /* Score ring smaller on mobile */
+            .score-ring {
+                width: 42px !important;
+                height: 42px !important;
+                font-size: 0.85rem !important;
+            }
+
+            /* Analysis content smaller font */
+            .analysis-content {
+                font-size: 0.62rem !important;
+            }
+
+            /* Logo text smaller */
+            .logo-text { font-size: 1.5rem !important; }
+            .logo-sub { font-size: 0.55rem !important; }
+
+            /* Metric value smaller */
+            .metric-value { font-size: 1.8rem !important; }
+            .metric-card { padding: 14px !important; }
+
+            /* Panel header wraps */
+            .panel-header {
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+                padding: 12px 16px !important;
+            }
+
+            /* Defcon bar labels */
+            .defcon-level { font-size: 0.55rem !important; }
+
+            /* Privacy score ring stays readable */
+            .subject-text { font-size: 0.78rem !important; }
+            .sender-name { max-width: 140px !important; font-size: 0.75rem !important; }
+
+            /* Timestamp hidden on small screens */
+            #clockDisplay { display: none !important; }
+
+            /* URL scanner input */
+            #urlInput { font-size: 0.65rem !important; }
+        }
+
+        @media (max-width: 480px) {
+            /* Metric cards — still 2 col but tighter */
+            .metric-value { font-size: 1.5rem !important; }
+            .metric-label { font-size: 0.55rem !important; }
+
+            /* Hide status column header */
+            .email-table th:nth-child(4),
+            .email-table td:nth-child(4) {
+                display: none;
+            }
+
+            /* Recommended actions single column */
+            .actions-grid { grid-template-columns: 1fr !important; }
+        }
     </style>
 </head>
 <body>
@@ -520,19 +728,19 @@
                 </svg>
             </div>
             <div>
-                <div class="logo-text">Phish<span>Radar</span></div>
+                <div class="logo-text">Phish<span>Guard</span></div>
                 <div class="logo-sub">SECURITY OPERATIONS CENTER &nbsp;|&nbsp; THREAT INTELLIGENCE PLATFORM</div>
             </div>
         </div>
 
-        <div style="display:flex; align-items:center; gap:12px;">
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
             <div class="timestamp" id="clockDisplay"></div>
             {% if connected_email %}
             <div style="display:flex; align-items:center; gap:8px; background:rgba(0,255,136,0.05); border:1px solid rgba(0,255,136,0.2); padding:8px 14px; border-radius:4px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                 </svg>
-                <span style="font-family:'Share Tech Mono'; font-size:0.7rem; color:var(--accent-green); letter-spacing:0.05em;">{{ connected_email }}</span>
+                <span style="font-family:'Share Tech Mono'; font-size:0.7rem; color:var(--accent-green); letter-spacing:0.05em; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block;">{{ connected_email }}</span>
                 <a href="/logout" style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--text-secondary); letter-spacing:0.1em; text-decoration:none; margin-left:6px; padding:2px 8px; border:1px solid rgba(255,255,255,0.1); border-radius:3px;">DISCONNECT</a>
             </div>
             {% else %}
@@ -554,7 +762,7 @@
     {% endfor %}
 
     <!-- ═══════════════ METRIC ROW ═══════════════ -->
-    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:16px; margin-bottom:24px;">
+    <div class="metric-grid" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:16px; margin-bottom:24px;">
         <div class="metric-card blue">
             <div class="metric-label">Emails Scanned</div>
             <div class="metric-value">{{ emails|length }}</div>
@@ -574,10 +782,10 @@
     </div>
 
     <!-- ═══════════════ MAIN GRID ═══════════════ -->
-    <div style="display:grid; grid-template-columns: 300px 1fr; gap:20px; align-items:start;">
+    <div style="display:grid; grid-template-columns: 300px 1fr; gap:20px; align-items:start;" class="main-grid">
 
         <!-- ── LEFT PANEL ── -->
-        <div style="display:flex; flex-direction:column; gap:16px;">
+        <div style="display:flex; flex-direction:column; gap:16px; min-width:0;">
 
             <!-- Chart Panel -->
             <div class="panel">
@@ -751,7 +959,7 @@
         </div>
 
         <!-- ── RIGHT PANEL (Live Feed) ── -->
-        <div class="panel">
+        <div class="panel" style="min-width:0; overflow:hidden;">
             {% if counts.phishing > 0 %}
             <div style="background:rgba(255,45,85,0.08); border-bottom:1px solid rgba(255,45,85,0.2); padding:12px 24px; display:flex; align-items:center; gap:10px;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-red)" stroke-width="2" style="flex-shrink:0;">
@@ -873,7 +1081,7 @@
                                     {% if email.risk_score >= 40 %}
                                     <div style="background:rgba(0,0,0,0.15); border-radius:6px; padding:10px 12px;">
                                         <div style="font-family:'Share Tech Mono'; font-size:0.58rem; color:var(--text-secondary); letter-spacing:0.15em; margin-bottom:6px;">RECOMMENDED ACTIONS</div>
-                                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:3px;">
+                                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:3px;" class="actions-grid">
                                             {% if email.risk_score >= 70 %}
                                             <div style="font-family:'Exo 2'; font-size:0.68rem; color:var(--accent-red);">→ Do NOT click any links</div>
                                             <div style="font-family:'Exo 2'; font-size:0.68rem; color:var(--accent-red);">→ Do NOT download attachments</div>
