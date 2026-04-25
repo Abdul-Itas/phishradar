@@ -7,7 +7,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from email_scanner import fetch_latest_emails, analyze_email, fetch_emails_with_token
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-if os.environ.get('RAILWAY_ENVIRONMENT') is None:
+if os.environ.get('BASE_URL') is None:
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
     os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
 app.secret_key = os.getenv("FLASK_SECRET", "phishradar-dev-secret")
@@ -19,9 +19,9 @@ _cached_time = {}
 _fetch_active = set()
 CACHE_TTL = 300
 def get_redirect_uri():
-    railway_url = os.getenv("RAILWAY_PUBLIC_DOMAIN")
-    if railway_url:
-        return f"https://{railway_url}/google-callback"
+    base_url = os.getenv("BASE_URL")
+    if base_url:
+        return f"{base_url}/google-callback"
     return "http://127.0.0.1:5000/google-callback"
 def parse_raw_email(raw: str) -> dict:
     msg = email_lib.message_from_string(raw)
@@ -165,8 +165,7 @@ def google_callback():
     flow = Flow.from_client_config({"web": {"client_id": client_id, "client_secret": client_secret, "auth_uri": "https://accounts.google.com/o/oauth2/auth", "token_uri": "https://oauth2.googleapis.com/token"}}, scopes=["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/userinfo.email", "openid"], redirect_uri=redirect_uri, state=session.get('oauth_state'))
     try:
         auth_response = request.url
-        if os.environ.get('RAILWAY_ENVIRONMENT') is None:
-            auth_response = request.url.replace('https://', 'http://')
+
         state_key = request.args.get('state', '')
         code_verifier = _pkce_store.pop(state_key, None) or session.pop('code_verifier', None)
         flow.fetch_token(authorization_response=auth_response, code_verifier=code_verifier)
@@ -285,7 +284,4 @@ def scan_url():
 def simulation():
     return render_template('simulation.html')
 if __name__ == '__main__':
-    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
-    os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
-    port = int(os.environ.get('PORT', 5000))
-    app.run(debug=False, host='0.0.0.0', port=port)
+    app.run(debug=True)
