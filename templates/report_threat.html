@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report a Threat — PhishRadar</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #050a12; color: #e8f0fe; font-family: 'Segoe UI', Arial, sans-serif; padding: 40px 20px; }
+        .container { max-width: 700px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 40px; }
+        .header h1 { font-size: 30px; color: #00e5ff; margin-bottom: 10px; }
+        .header p { color: #7a8fad; font-size: 15px; line-height: 1.6; }
+        .card { background: #0a1628; border: 1px solid #1a3a6e; border-radius: 12px; padding: 35px; margin-bottom: 25px; }
+        .card h2 { color: #00e5ff; font-size: 16px; margin-bottom: 25px; padding-bottom: 10px; border-bottom: 1px solid #1a3a6e; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; color: #7a8fad; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .form-group input, .form-group textarea { width: 100%; background: #0d1b2e; border: 1px solid #1a3a6e; border-radius: 8px; padding: 12px 16px; color: #e8f0fe; font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s; }
+        .form-group input:focus, .form-group textarea:focus { border-color: #00e5ff; }
+        .form-group textarea { resize: vertical; min-height: 100px; }
+        .required { color: #ff2d55; margin-left: 3px; }
+        .optional-label { color: #4a5568; font-size: 11px; margin-left: 5px; }
+        .submit-btn { width: 100%; background: #00e5ff; color: #050a12; border: none; border-radius: 8px; padding: 14px; font-size: 15px; font-weight: bold; cursor: pointer; letter-spacing: 1px; transition: opacity 0.2s; }
+        .submit-btn:hover { opacity: 0.85; }
+
+        /* Result card */
+        .result-card { border-radius: 12px; padding: 25px; margin-bottom: 25px; }
+        .result-card.phishing { background: rgba(255,45,85,0.08); border: 1px solid #ff2d55; }
+        .result-card.suspicious { background: rgba(255,215,0,0.08); border: 1px solid #ffd700; }
+        .result-card.safe { background: rgba(0,255,136,0.08); border: 1px solid #00ff88; }
+        .result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .result-verdict { font-size: 20px; font-weight: bold; }
+        .result-card.phishing .result-verdict { color: #ff2d55; }
+        .result-card.suspicious .result-verdict { color: #ffd700; }
+        .result-card.safe .result-verdict { color: #00ff88; }
+        .result-score { font-size: 32px; font-weight: bold; }
+        .result-card.phishing .result-score { color: #ff2d55; }
+        .result-card.suspicious .result-score { color: #ffd700; }
+        .result-card.safe .result-score { color: #00ff88; }
+        .result-id { color: #7a8fad; font-size: 11px; font-family: monospace; margin-bottom: 15px; }
+        .flags-list { list-style: none; }
+        .flags-list li { background: #0d1b2e; border-radius: 6px; padding: 10px 14px; margin-bottom: 8px; font-size: 13px; color: #e8f0fe; border-left: 3px solid #ff2d55; }
+        .result-card.suspicious .flags-list li { border-left-color: #ffd700; }
+        .result-card.safe .flags-list li { border-left-color: #00ff88; }
+        .success-msg { background: rgba(0,255,136,0.08); border: 1px solid #00ff88; border-radius: 8px; padding: 12px 16px; color: #00ff88; font-size: 13px; margin-bottom: 20px; }
+        .error-msg { background: rgba(255,45,85,0.08); border: 1px solid #ff2d55; border-radius: 8px; padding: 12px 16px; color: #ff2d55; font-size: 13px; margin-bottom: 20px; }
+        .nav-links { text-align: center; margin-top: 20px; }
+        .nav-links a { color: #00e5ff; text-decoration: none; font-size: 13px; margin: 0 10px; }
+        .info-box { background: #0d1b2e; border-left: 3px solid #00e5ff; border-radius: 6px; padding: 14px 16px; margin-bottom: 20px; font-size: 13px; color: #7a8fad; line-height: 1.6; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="header">
+        <h1>🚨 Report a Phishing Threat</h1>
+        <p>Help protect the African community by reporting suspicious URLs, emails, and domains.<br>
+        Every submission strengthens PhishRadar's threat intelligence database.</p>
+    </div>
+
+    <!-- Show result if submission was made -->
+    {% if result %}
+    <div class="result-card {{ result.verdict | lower }}">
+        <div class="result-header">
+            <div>
+                <div class="result-verdict">{{ result.verdict }}</div>
+                <div class="result-id">IOC ID: {{ result.id }}</div>
+            </div>
+            <div class="result-score">{{ result.risk_score }}%</div>
+        </div>
+
+        {% if result.flags %}
+        <p style="color:#7a8fad; font-size:12px; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">Threat Indicators</p>
+        <ul class="flags-list">
+            {% for flag in result.flags %}
+            <li>› {{ flag }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+
+    {% if success %}
+    <div class="success-msg">
+        ✅ Thank you! This threat has been logged to PhishRadar's Africa IOC database with ID <strong>{{ result.id }}</strong>. Your contribution helps protect others.
+    </div>
+    {% endif %}
+    {% endif %}
+
+    {% if error %}
+    <div class="error-msg">⚠ {{ error }}</div>
+    {% endif %}
+
+    <!-- Submission form -->
+    <div class="card">
+        <h2>Submit a Suspicious URL or Email</h2>
+
+        <div class="info-box">
+            Submit any suspicious link, domain, or email you've received. PhishRadar will analyze it automatically and add confirmed threats to the public IOC database.
+        </div>
+
+        <form method="POST" action="/report-threat">
+            <div class="form-group">
+                <label>Suspicious URL or Domain <span class="required">*</span></label>
+                <input type="text" name="url" placeholder="e.g. http://cbn-verify.com/update-bvn or gtbank-ng.com" required>
+            </div>
+
+            <div class="form-group">
+                <label>Sender Email <span class="optional-label">(optional)</span></label>
+                <input type="text" name="sender" placeholder="e.g. cbn-alert@gmail.com">
+            </div>
+
+            <div class="form-group">
+                <label>Email Subject <span class="optional-label">(optional)</span></label>
+                <input type="text" name="subject" placeholder="e.g. URGENT: Update your BVN within 24 hours">
+            </div>
+
+            <div class="form-group">
+                <label>Additional Context <span class="optional-label">(optional)</span></label>
+                <textarea name="description" placeholder="Describe what made this suspicious — what it claimed, who it pretended to be, or any other details..."></textarea>
+            </div>
+
+            <button type="submit" class="submit-btn">🔍 ANALYZE & REPORT THREAT</button>
+        </form>
+    </div>
+
+    <div class="nav-links">
+        <a href="/">← Dashboard</a>
+        <a href="/api/iocs">View IOC Feed</a>
+        <a href="/api/docs">API Docs</a>
+    </div>
+
+</div>
+</body>
+</html>

@@ -475,5 +475,194 @@ def api_feed():
 def api_docs():
     return render_template('api_docs.html')
 
+# ── IOC Storage helpers ───────────────────────────────────────────────────────
+import json
+from datetime import datetime, timezone
+
+IOC_FILE = 'ioc_submissions.json'
+
+def load_iocs():
+    """Load existing IOC submissions from file."""
+    if not os.path.exists(IOC_FILE):
+        return []
+    try:
+        with open(IOC_FILE, 'r') as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+def save_ioc(ioc: dict):
+    """Append a new IOC to the submissions file."""
+    iocs = load_iocs()
+    iocs.append(ioc)
+    with open(IOC_FILE, 'w') as f:
+        json.dump(iocs, f, indent=2)
+
+
+# ── Submission portal route ───────────────────────────────────────────────────
+@app.route('/report-threat', methods=['GET', 'POST'])
+def report_threat():
+    result = None
+    error = None
+    success = False
+
+    if request.method == 'POST':
+        url = request.form.get('url', '').strip()
+        sender = request.form.get('sender', '').strip()
+        subject = request.form.get('subject', '').strip()
+        description = request.form.get('description', '').strip()
+
+        if not url:
+            error = "Please provide a URL or domain to report."
+        else:
+            try:
+                import urllib.parse, re
+
+                # Normalize URL
+                if not url.startswith('http'):
+                    url = 'http://' + url
+
+                # Run through existing URL scanner logic
+                parsed = urllib.parse.urlparse(url)
+                domain = parsed.netloc.lower().replace('www.', '') or url.replace('http://','').replace('https://','').split('/')[0]
+
+                from africa_threat_signatures import (
+                    AFRICA_BRAND_MAP, TRUSTED_AFRICAN_DOMAINS,
+                    AFRICA_SUSPICIOUS_DOMAIN_PATTERNS
+                )
+
+                risk_score = 0
+                flags = []
+
+                # Shortener check
+                SHORTENERS = ['bit.ly','tinyurl.com','goo.gl','t.co','ow.ly','rb.gy']
+                if any(s in domain for s in SHORTENERS):
+                    risk_score += 45
+                    flags.append('URL shortener detected — real destination hidden')
+
+                # Normalize for lookalike detection
+                normalised = domain.replace('0','o').replace('1','l').replace('3','e').replace('4','a').replace('5','s')
+                domain_name = normalised.split('.')[0]
+
+                # Global brand check
+                GLOBAL_LEGIT = {
+                    'paypal':'paypal.com','google':'google.com',
+                    'amazon':'amazon.com','microsoft':'microsoft.com',
+                    'apple':'apple.com','netflix':'netflix.com',
+                }
+                for brand, legit in GLOBAL_LEGIT.items():
+                    if brand in domain_name and domain != legit:
+                        risk_score += 60
+                        flags.append(f'Impersonates {brand.capitalize()} (legitimate: {legit})')
+                        break
+
+                # African brand check
+                for key, name in AFRICA_BRAND_MAP.items():
+                    if key in domain_name and domain not in TRUSTED_AFRICAN_DOMAINS:
+                        risk_score += 70
+                        flags.append(f'African brand impersonation: {name}')
+                        break
+
+                # Suspicious African domain patterns
+                for pattern in AFRICA_SUSPICIOUS_DOMAIN_PATTERNS:
+                    if pattern in domain:
+                        risk_score += 55
+                        flags.append(f'Known African phishing pattern: {pattern}')
+                        break
+
+                # Raw IP check
+                if re.compile(r'^(\d{1,3}\.){3}\d{1,3}$').match(domain):
+                    risk_score += 40
+                    flags.append('Raw IP address used instead of domain')
+
+                # No HTTPS
+                if url.startswith('http://'):
+                    risk_score += 15
+                    flags.append('No HTTPS — unencrypted connection')
+
+                # Path keywords
+                path_lower = (parsed.path + '?' + parsed.query).lower()
+                BAD_KW = ['login','verify','secure','account','update','confirm','banking','signin','password','bvn','nin','kyc']
+                found_kw = [k for k in BAD_KW if k in path_lower]
+                if len(found_kw) >= 2:
+                    risk_score += 25
+                    flags.append(f'Credential-harvesting keywords: {", ".join(found_kw[:3])}')
+
+                # Also run email analysis if sender/subject provided
+                email_score = 0
+                email_flags = []
+                if sender or subject:
+                    from email_scanner import analyze_email
+                    e_score, e_status, e_explanation, e_engine = analyze_email(
+                        subject or '(no subject)',
+                        sender or 'unknown@unknown.com',
+                        description or ''
+                    )
+                    email_score = e_score
+                    email_flags = [e_explanation]
+
+                # Combine scores
+                final_score = min(100, max(risk_score, email_score))
+                if not flags and email_flags:
+                    flags = email_flags
+
+                verdict = (
+                    'PHISHING' if final_score >= 70
+                    else 'SUSPICIOUS' if final_score >= 40
+                    else 'SAFE'
+                )
+
+                # Save to IOC file
+                ioc_entry = {
+                    'id': f"IOC-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                    'url': url,
+                    'domain': domain,
+                    'sender': sender or None,
+                    'subject': subject or None,
+                    'description': description or None,
+                    'risk_score': final_score,
+                    'verdict': verdict,
+                    'flags': flags,
+                    'submitted_at': datetime.now(timezone.utc).isoformat(),
+                    'source': 'community_submission'
+                }
+                save_ioc(ioc_entry)
+
+                result = ioc_entry
+                success = True
+
+            except Exception as e:
+                error = f"Analysis failed: {str(e)}"
+
+    return render_template('report_threat.html', result=result, error=error, success=success)
+
+
+# ── Public IOC feed endpoint ──────────────────────────────────────────────────
+@app.route('/api/iocs', methods=['GET'])
+def api_iocs():
+    from flask import jsonify
+    iocs = load_iocs()
+
+    # Only return confirmed threats (score >= 40)
+    threats = [
+        {
+            'id': i.get('id'),
+            'domain': i.get('domain'),
+            'verdict': i.get('verdict'),
+            'risk_score': i.get('risk_score'),
+            'flags': i.get('flags', []),
+            'submitted_at': i.get('submitted_at'),
+            'source': i.get('source')
+        }
+        for i in iocs if i.get('risk_score', 0) >= 40
+    ]
+
+    return jsonify({
+        'total': len(threats),
+        'threats': threats,
+        'powered_by': 'PhishRadar Africa Threat Intelligence',
+        'github': 'github.com/Abdul-Itas/phishradar'
+    })
+
 if __name__ == '__main__':
     app.run(debug=True)
