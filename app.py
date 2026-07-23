@@ -471,5 +471,9 @@ def api_feed():
         'github': 'github.com/Abdul-Itas/phishradar'
     })
 
+@app.route('/api/docs')
+def api_docs():
+    return render_template('api_docs.html')
+
 if __name__ == '__main__':
     app.run(debug=True)

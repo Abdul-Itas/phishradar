@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishRadar API Documentation</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #050a12; color: #e8f0fe; font-family: 'Segoe UI', Arial, sans-serif; padding: 40px 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header { text-align: center; margin-bottom: 50px; }
+        .header h1 { font-size: 36px; color: #00e5ff; margin-bottom: 10px; }
+        .header p { color: #7a8fad; font-size: 16px; }
+        .badge { display: inline-block; background: rgba(0,229,255,0.1); border: 1px solid #00e5ff; color: #00e5ff; padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-top: 10px; }
+        .section { background: #0a1628; border: 1px solid #1a3a6e; border-radius: 12px; padding: 30px; margin-bottom: 30px; }
+        .section h2 { color: #00e5ff; font-size: 18px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #1a3a6e; }
+        .endpoint { background: #0d1b2e; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .endpoint-header { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
+        .method { background: #00a8ff; color: white; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .url { color: #00e5ff; font-family: monospace; font-size: 15px; }
+        .description { color: #7a8fad; font-size: 14px; margin-bottom: 15px; }
+        .params table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .params th { text-align: left; color: #7a8fad; padding: 8px; border-bottom: 1px solid #1a3a6e; }
+        .params td { padding: 8px; border-bottom: 1px solid #0a1628; }
+        .params td:first-child { color: #00e5ff; font-family: monospace; }
+        .required { color: #ff2d55; font-size: 11px; }
+        .optional { color: #7a8fad; font-size: 11px; }
+        .code-block { background: #020710; border: 1px solid #1a3a6e; border-radius: 8px; padding: 20px; margin-top: 15px; overflow-x: auto; }
+        .code-block pre { font-family: monospace; font-size: 13px; color: #00e5ff; line-height: 1.6; }
+        .example-label { color: #7a8fad; font-size: 12px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .coverage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .coverage-item { background: #0d1b2e; border-radius: 8px; padding: 15px; border-left: 3px solid #00e5ff; }
+        .coverage-item h4 { color: #00e5ff; font-size: 13px; margin-bottom: 8px; }
+        .coverage-item p { color: #7a8fad; font-size: 12px; line-height: 1.5; }
+        .verdict-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .verdict-item { text-align: center; padding: 15px; border-radius: 8px; }
+        .verdict-item.safe { background: rgba(0,255,136,0.1); border: 1px solid #00ff88; }
+        .verdict-item.suspicious { background: rgba(255,215,0,0.1); border: 1px solid #ffd700; }
+        .verdict-item.phishing { background: rgba(255,45,85,0.1); border: 1px solid #ff2d55; }
+        .verdict-item .score { font-size: 22px; font-weight: bold; margin-bottom: 5px; }
+        .verdict-item.safe .score { color: #00ff88; }
+        .verdict-item.suspicious .score { color: #ffd700; }
+        .verdict-item.phishing .score { color: #ff2d55; }
+        .verdict-item p { font-size: 12px; color: #7a8fad; }
+        .footer { text-align: center; margin-top: 50px; color: #7a8fad; font-size: 13px; }
+        .footer a { color: #00e5ff; text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="header">
+        <h1>⚡ PhishRadar API</h1>
+        <p>Africa-focused Threat Intelligence API — Free & Open Source</p>
+        <span class="badge">v1.0 — Public Beta</span>
+    </div>
+
+    <div class="section">
+        <h2>Base URL</h2>
+        <div class="code-block">
+            <pre>https://phishradar.onrender.com</pre>
+        </div>
+        <p style="color:#7a8fad; font-size:13px; margin-top:10px;">All endpoints are publicly accessible. No authentication required.</p>
+    </div>
+
+    <div class="section">
+        <h2>Endpoints</h2>
+
+        <div class="endpoint">
+            <div class="endpoint-header">
+                <span class="method">GET</span>
+                <span class="url">/api/check</span>
+            </div>
+            <p class="description">Analyze a URL or domain for phishing indicators. Returns a risk score, verdict, and detailed threat flags.</p>
+
+            <div class="params">
+                <table>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Type</th>
+                        <th>Required</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td>url</td>
+                        <td>string</td>
+                        <td><span class="required">required*</span></td>
+                        <td>Full URL to analyze (e.g. http://cbn-verify.com/update)</td>
+                    </tr>
+                    <tr>
+                        <td>domain</td>
+                        <td>string</td>
+                        <td><span class="optional">optional*</span></td>
+                        <td>Domain only (e.g. gtbank-ng.com). Use instead of url.</td>
+                    </tr>
+                </table>
+                <p style="color:#7a8fad; font-size:12px; margin-top:8px;">* Provide either url or domain — at least one is required.</p>
+            </div>
+
+            <div class="example-label" style="margin-top:20px;">Example Request</div>
+            <div class="code-block">
+                <pre>GET /api/check?url=cbn-nigeria-verify.com/update-bvn</pre>
+            </div>
+
+            <div class="example-label" style="margin-top:15px;">Example Response</div>
+            <div class="code-block">
+                <pre>{
+  "query": "cbn-nigeria-verify.com/update-bvn",
+  "threat_detected": true,
+  "risk_score": 100,
+  "verdict": "PHISHING",
+  "flags": [
+    "African brand impersonation detected: Central Bank of Nigeria (cbn.gov.ng)",
+    "Known African phishing domain pattern: cbn-nigeria",
+    "No HTTPS — unencrypted connection",
+    "Credential-harvesting keywords in URL: update, bvn"
+  ],
+  "checked_at": "2026-07-23T20:50:11.314745+00:00",
+  "powered_by": "PhishRadar Africa Threat Intelligence"
+}</pre>
+            </div>
+        </div>
+
+        <div class="endpoint">
+            <div class="endpoint-header">
+                <span class="method">GET</span>
+                <span class="url">/api/feed</span>
+            </div>
+            <p class="description">Returns PhishRadar threat intelligence feed metadata, coverage areas, and available endpoints.</p>
+
+            <div class="example-label">Example Request</div>
+            <div class="code-block">
+                <pre>GET /api/feed</pre>
+            </div>
+        </div>
+
+        <div class="endpoint">
+            <div class="endpoint-header">
+                <span class="method">GET</span>
+                <span class="url">/api/docs</span>
+            </div>
+            <p class="description">This documentation page.</p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Risk Scoring</h2>
+        <div class="verdict-grid">
+            <div class="verdict-item safe">
+                <div class="score">0 – 39</div>
+                <strong style="color:#00ff88;">SAFE</strong>
+                <p>No significant threat indicators detected</p>
+            </div>
+            <div class="verdict-item suspicious">
+                <div class="score">40 – 69</div>
+                <strong style="color:#ffd700;">SUSPICIOUS</strong>
+                <p>Some indicators present — proceed with caution</p>
+            </div>
+            <div class="verdict-item phishing">
+                <div class="score">70 – 100</div>
+                <strong style="color:#ff2d55;">PHISHING</strong>
+                <p>Strong evidence of a phishing or fraud attempt</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Africa Threat Coverage</h2>
+        <div class="coverage-grid">
+            <div class="coverage-item">
+                <h4>🏦 Banks</h4>
+                <p>GTBank, Zenith, Access, First Bank, UBA, FCMB, Ecobank and 25+ more</p>
+            </div>
+            <div class="coverage-item">
+                <h4>💳 Fintechs</h4>
+                <p>OPay, PalmPay, Kuda, Flutterwave, Paystack, Moniepoint and more</p>
+            </div>
+            <div class="coverage-item">
+                <h4>🏛️ Government</h4>
+                <p>CBN, EFCC, FIRS, NIMC, NCC impersonation detection</p>
+            </div>
+            <div class="coverage-item">
+                <h4>📱 Telcos</h4>
+                <p>MTN, Airtel, Glo, 9mobile prize scam detection</p>
+            </div>
+            <div class="coverage-item">
+                <h4>🆔 ID Fraud</h4>
+                <p>BVN and NIN update/verification scam patterns</p>
+            </div>
+            <div class="coverage-item">
+                <h4>💰 419 Scams</h4>
+                <p>Advance fee fraud, inheritance, next-of-kin patterns</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Code Examples</h2>
+
+        <div class="example-label">Python</div>
+        <div class="code-block">
+            <pre>import requests
+
+response = requests.get(
+    'https://phishradar.onrender.com/api/check',
+    params={'url': 'cbn-nigeria-verify.com/update-bvn'}
+)
+data = response.json()
+print(data['verdict'])      # PHISHING
+print(data['risk_score'])   # 100
+print(data['flags'])        # List of threat indicators</pre>
+        </div>
+
+        <div class="example-label" style="margin-top:20px;">JavaScript</div>
+        <div class="code-block">
+            <pre>fetch('https://phishradar.onrender.com/api/check?url=suspicious-site.com')
+  .then(res => res.json())
+  .then(data => {
+    console.log(data.verdict);     // PHISHING / SUSPICIOUS / SAFE
+    console.log(data.risk_score);  // 0-100
+    console.log(data.flags);       // Threat details
+  });</pre>
+        </div>
+
+        <div class="example-label" style="margin-top:20px;">cURL</div>
+        <div class="code-block">
+            <pre>curl "https://phishradar.onrender.com/api/check?url=gtbank-ng.com"</pre>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Built by <a href="https://github.com/Abdul-Itas" target="_blank">Abdulmajid Imam</a> |
+        <a href="https://github.com/Abdul-Itas/phishradar" target="_blank">GitHub</a> |
+        <a href="https://phishradar.onrender.com" target="_blank">Live Demo</a></p>
+        <p style="margin-top:8px;">PhishRadar — Africa Threat Intelligence | Free & Open Source</p>
+    </div>
+
+</div>
+</body>
+</html>
