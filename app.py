@@ -10,7 +10,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 if os.environ.get('BASE_URL') is None:
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
     os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
-app.secret_key = os.getenv("FLASK_SECRET", "phishradar-dev-secret")
+app.secret_key = os.getenv("FLASK_SECRET", "phishradar-dev-secret")######
 _pkce_store = {}
 import threading
 _cache_lock = threading.Lock()
@@ -248,14 +248,41 @@ def scan_url():
                         results['flags'].append({'severity':'CRITICAL','message':'CONFIRMED MALICIOUS by Google Safe Browsing database'})
             except Exception as e:
                 print(f'[PhishRadar] GSB check failed: {e}')
-        BRANDS = ['paypal','google','amazon','microsoft','apple','netflix','facebook','instagram','linkedin','bankofamerica']
-        normalised = domain.replace('0','o').replace('1','l').replace('3','e').replace('4','a')
+        BRANDS = ['paypal', 'google', 'amazon', 'microsoft', 'apple', 'netflix', 'facebook', 'instagram', 'linkedin',
+                  'bankofamerica']
+        normalised = domain.replace('0', 'o').replace('1', 'l').replace('3', 'e').replace('4', 'a')
         domain_name = normalised.split('.')[0]
-        LEGIT = {'paypal':'paypal.com','google':'google.com','amazon':'amazon.com','microsoft':'microsoft.com','apple':'apple.com','netflix':'netflix.com','facebook':'facebook.com','instagram':'instagram.com','linkedin':'linkedin.com','bankofamerica':'bankofamerica.com'}
-        for brand in BRANDS:
-            if brand in domain_name and domain != LEGIT.get(brand,''):
-                results['risk_score'] += 60
-                results['flags'].append({'severity':'HIGH','message':f'Domain impersonates {brand.capitalize()} (legitimate: {LEGIT.get(brand)})'})
+        LEGIT = {
+            'paypal': 'paypal.com', 'google': 'google.com', 'amazon': 'amazon.com',
+            'microsoft': 'microsoft.com', 'apple': 'apple.com', 'netflix': 'netflix.com',
+            'facebook': 'facebook.com', 'instagram': 'instagram.com',
+            'linkedin': 'linkedin.com', 'bankofamerica': 'bankofamerica.com',
+            # African banks
+            'gtbank': 'gtbank.com', 'zenithbank': 'zenithbank.com',
+            'accessbank': 'accessbankplc.com', 'firstbank': 'firstbanknigeria.com',
+            'uba': 'ubagroup.com', 'fcmb': 'fcmb.com', 'ecobank': 'ecobank.com',
+            'stanbicibtc': 'stanbicibtc.com',
+            # African fintechs
+            'opay': 'opayweb.com', 'palmpay': 'palmpay.com',
+            'kuda': 'kuda.com', 'piggyvest': 'piggyvest.com',
+            'flutterwave': 'flutterwave.com', 'paystack': 'paystack.com',
+            'moniepoint': 'moniepoint.com', 'chippercash': 'chippercash.com',
+            # Nigerian government
+            'cbn': 'cbn.gov.ng', 'efcc': 'efcc.gov.ng',
+            'firs': 'firs.gov.ng', 'nimc': 'nimc.gov.ng',
+            # Telcos
+            'mtn': 'mtnonline.com', 'airtel': 'airtel.com.ng',
+            'glo': 'gloworld.com',
+        }
+        AFRICAN_BRANDS = list(LEGIT.keys())[10:]  # Everything after global brands
+        for brand in LEGIT.keys():
+            if brand in domain_name and domain != LEGIT.get(brand, ''):
+                severity = 'CRITICAL' if brand in AFRICAN_BRANDS else 'HIGH'
+                results['risk_score'] += 65 if brand in AFRICAN_BRANDS else 60
+                results['flags'].append({
+                    'severity': severity,
+                    'message': f'Domain impersonates {brand.upper()} (legitimate site: {LEGIT.get(brand)})'
+                })
                 break
         if re.compile(r'^(\d{1,3}\.){3}\d{1,3}$').match(domain):
             results['risk_score'] += 40
