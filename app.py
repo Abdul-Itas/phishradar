@@ -310,5 +310,166 @@ def scan_url():
 @app.route('/simulation')
 def simulation():
     return render_template('simulation.html')
+
+
+@app.route('/api/check', methods=['GET'])
+def api_check():
+    from flask import jsonify
+    from datetime import datetime, timezone
+
+    # Get query parameters
+    url = request.args.get('url', '').strip()
+    domain = request.args.get('domain', '').strip()
+
+    # Must provide either url or domain
+    if not url and not domain:
+        return jsonify({
+            'error': 'Please provide a url or domain parameter',
+            'example': '/api/check?url=suspicious-site.com'
+        }), 400
+
+    # If domain provided without url, construct one
+    query = url if url else domain
+    if not query.startswith('http'):
+        query = 'http://' + query
+
+    # Reuse existing scan_url logic
+    import urllib.parse, re
+
+    results = {
+        'query': url or domain,
+        'threat_detected': False,
+        'risk_score': 0,
+        'verdict': 'SAFE',
+        'flags': [],
+        'checked_at': datetime.now(timezone.utc).isoformat(),
+        'powered_by': 'PhishRadar Africa Threat Intelligence'
+    }
+
+    try:
+        parsed = urllib.parse.urlparse(query)
+        domain_extracted = parsed.netloc.lower().replace('www.', '') or \
+                           query.replace('http://', '').replace('https://', '').split('/')[0]
+
+        # Import Africa signatures
+        from africa_threat_signatures import (
+            AFRICA_BRAND_MAP, TRUSTED_AFRICAN_DOMAINS,
+            AFRICA_SUSPICIOUS_DOMAIN_PATTERNS,
+            AFRICAN_BANKS, AFRICAN_FINTECHS,
+            AFRICAN_GOV_BODIES, AFRICAN_TELCOS
+        )
+
+        # Check shorteners
+        SHORTENERS = ['bit.ly', 'tinyurl.com', 'goo.gl', 't.co', 'ow.ly', 'rb.gy']
+        if any(s in domain_extracted for s in SHORTENERS):
+            results['risk_score'] += 45
+            results['flags'].append('URL shortener detected — real destination is hidden')
+
+        # Normalize domain for lookalike detection
+        normalised = (
+            domain_extracted.replace('0', 'o').replace('1', 'l')
+            .replace('3', 'e').replace('4', 'a').replace('5', 's')
+        )
+        domain_name = normalised.split('.')[0]
+
+        # Global brand impersonation
+        GLOBAL_LEGIT = {
+            'paypal': 'paypal.com', 'google': 'google.com',
+            'amazon': 'amazon.com', 'microsoft': 'microsoft.com',
+            'apple': 'apple.com', 'netflix': 'netflix.com',
+        }
+        for brand, legit in GLOBAL_LEGIT.items():
+            if brand in domain_name and domain_extracted != legit:
+                results['risk_score'] += 60
+                results['flags'].append(f'Impersonates {brand.capitalize()} (legitimate: {legit})')
+                break
+
+        # African brand impersonation
+        for key, name in AFRICA_BRAND_MAP.items():
+            if key in domain_name and domain_extracted not in TRUSTED_AFRICAN_DOMAINS:
+                results['risk_score'] += 70
+                results['flags'].append(f'African brand impersonation detected: {name}')
+                break
+
+        # Suspicious African domain patterns
+        for pattern in AFRICA_SUSPICIOUS_DOMAIN_PATTERNS:
+            if pattern in domain_extracted:
+                results['risk_score'] += 55
+                results['flags'].append(f'Known African phishing domain pattern: {pattern}')
+                break
+
+        # Raw IP address
+        if re.compile(r'^(\d{1,3}\.){3}\d{1,3}$').match(domain_extracted):
+            results['risk_score'] += 40
+            results['flags'].append('Raw IP address used instead of domain name')
+
+        # Excessive subdomains
+        if len(domain_extracted.split('.')) > 4:
+            results['risk_score'] += 30
+            results['flags'].append('Excessive subdomains — possible domain spoofing')
+
+        # No HTTPS
+        if query.startswith('http://'):
+            results['risk_score'] += 15
+            results['flags'].append('No HTTPS — unencrypted connection')
+
+        # Path keywords
+        path_lower = (parsed.path + '?' + parsed.query).lower()
+        BAD_KW = ['login', 'verify', 'secure', 'account', 'update', 'confirm', 'banking', 'signin', 'password', 'bvn',
+                  'nin', 'kyc']
+        found_kw = [k for k in BAD_KW if k in path_lower]
+        if len(found_kw) >= 2:
+            results['risk_score'] += 25
+            results['flags'].append(f'Credential-harvesting keywords in URL: {", ".join(found_kw[:3])}')
+
+        # Cap score
+        results['risk_score'] = min(results['risk_score'], 100)
+        results['threat_detected'] = results['risk_score'] >= 40
+
+        if results['risk_score'] >= 70:
+            results['verdict'] = 'PHISHING'
+        elif results['risk_score'] >= 40:
+            results['verdict'] = 'SUSPICIOUS'
+        else:
+            results['verdict'] = 'SAFE'
+
+        if not results['flags']:
+            results['flags'].append('No threat indicators detected')
+
+    except Exception as e:
+        results['flags'].append(f'Analysis error: {str(e)}')
+
+    return jsonify(results)
+
+
+@app.route('/api/feed', methods=['GET'])
+def api_feed():
+    from flask import jsonify
+    from datetime import datetime, timezone
+
+    return jsonify({
+        'feed': 'PhishRadar Africa Threat Intelligence Feed',
+        'version': '1.0',
+        'generated_at': datetime.now(timezone.utc).isoformat(),
+        'description': 'Real-time African phishing threat indicators',
+        'endpoints': {
+            'check_url': '/api/check?url=<url>',
+            'check_domain': '/api/check?domain=<domain>',
+            'feed': '/api/feed'
+        },
+        'coverage': {
+            'regions': ['Nigeria', 'Ghana', 'Kenya', 'South Africa'],
+            'categories': [
+                'Nigerian bank impersonation',
+                'African fintech fraud',
+                'BVN/NIN scams',
+                'CBN/EFCC impersonation',
+                'Advance fee fraud (419)',
+                'Telco prize scams'
+            ]
+        },
+        'github': 'github.com/Abdul-Itas/phishradar'
+    })
+
 if __name__ == '__main__':
     app.run(debug=True)
