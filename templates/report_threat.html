@@ -121,13 +121,20 @@
         </ul>
         {% endif %}
     </div>
+    {% endif %}
 
     {% if success %}
+    {% if result.verdict == 'SAFE' %}
+    <div class="success-msg" style="background:rgba(0,255,136,0.08); border-color:#00ff88; color:#00ff88;">
+        ✅ Analysis complete. This URL appears safe and was not added to the threat database.
+    </div>
+    {% else %}
     <div class="success-msg">
         ✅ Thank you! This threat has been logged to PhishRadar's Africa IOC database with ID <strong>{{ result.id }}</strong>. Your contribution helps protect others.
     </div>
     {% endif %}
-    {% endif %}
+{% endif %}
+
 
     {% if error %}
     <div class="error-msg">⚠ {{ error }}</div>
