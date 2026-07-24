@@ -1,19 +1,22 @@
-# 🛡️ PhishGuard SOC — AI-Powered Email Security Platform
+# 🛡️ PhishRadar — Africa Threat Intelligence Platform
 
-> **Hackathon Project** | Cybersecurity Track | Built with Python, Flask, Gmail API & Claude AI
+> **AI-Powered Phishing Detection & SOC Platform** | Built with Python, Flask, Gmail API & Groq AI
 
-![PhishGuard](https://img.shields.io/badge/Status-Live-00ff88?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Live-00ff88?style=for-the-badge)
 ![Python](https://img.shields.io/badge/Python-3.10+-00a8ff?style=for-the-badge&logo=python)
 ![Flask](https://img.shields.io/badge/Flask-3.0-00e5ff?style=for-the-badge&logo=flask)
-![AI Powered](https://img.shields.io/badge/AI-Claude%20Sonnet-a78bfa?style=for-the-badge)
+![AI Powered](https://img.shields.io/badge/AI-Groq%20LLaMA-a78bfa?style=for-the-badge)
+![Africa](https://img.shields.io/badge/Focus-Africa%20Threat%20Intel-ff2d55?style=for-the-badge)
 
 ---
 
-## 🎯 What is PhishGuard?
+## 🎯 What is PhishRadar?
 
-PhishGuard is a **real-time phishing detection system** that automatically scans your Gmail inbox, analyzes every email using an AI engine, and alerts you instantly when a threat is detected — just like the tools used by enterprise Security Operations Centers (SOCs).
+PhishRadar is a **real-time phishing detection and threat intelligence platform** purpose-built for African users. It automatically scans Gmail inboxes, analyzes emails using AI, detects African-specific phishing patterns (BVN fraud, CBN impersonation, Nigerian bank scams), and provides a public threat intelligence API — just like tools used by enterprise Security Operations Centers (SOCs).
 
-Built for the hackathon in under 5 days, PhishGuard demonstrates how AI can make professional-grade cybersecurity tools accessible to everyday users.
+🔗 **Live Demo:** https://phishradar.onrender.com
+💻 **Africa IOC Repository:** https://github.com/Abdul-Itas/Africa-Phishing-IOCs
+📖 **API Documentation:** https://phishradar.onrender.com/api/docs
 
 ---
 
@@ -21,34 +24,94 @@ Built for the hackathon in under 5 days, PhishGuard demonstrates how AI can make
 
 | Feature | Description |
 |---|---|
-| 🔍 **Live Inbox Scanning** | Connects to Gmail and scans your latest emails automatically |
-| 🤖 **AI Threat Analysis** | Claude AI acts as a SOC analyst — explains *why* an email is dangerous |
+| 🔍 **Live Inbox Scanning** | Connects to Gmail via OAuth and scans latest emails automatically |
+| 🤖 **AI Threat Analysis** | Groq LLaMA acts as a SOC analyst — explains *why* an email is dangerous |
+| 🌍 **Africa Threat Intelligence** | Dedicated detection for Nigerian banks, fintechs, BVN/NIN fraud, CBN/EFCC impersonation |
 | 📊 **SOC Dashboard** | Real-time threat overview with risk scores, DEFCON level, and doughnut chart |
-| 📧 **Auto Alert Emails** | Sends an HTML warning email the moment phishing is detected |
+| 🚨 **Community Submission Portal** | Anyone can report suspicious URLs — submissions feed the public IOC database |
+| 🔌 **Public Threat Intelligence API** | Free API for querying phishing IOCs — no authentication required |
+| 📈 **Weekly African Phishing Report** | Auto-generated summary of threats detected each week |
+| 📧 **Auto Alert Emails** | Sends HTML warning email the moment phishing is detected |
 | 🔐 **Google OAuth** | Users connect Gmail securely — no passwords stored |
 | 📎 **Manual Upload** | Paste raw email text or upload `.eml` files for instant analysis |
 | 🎓 **Simulation Lab** | 4 interactive phishing scenarios to train cyber awareness |
 
 ---
 
+## 🌍 Africa Threat Intelligence
+
+PhishRadar includes dedicated detection for threats targeting African users:
+
+- 🏦 **30+ Nigerian & African Banks** — GTBank, Zenith, Access, First Bank, UBA, FCMB, Ecobank
+- 💳 **African Fintechs** — OPay, PalmPay, Kuda, Flutterwave, Paystack, Moniepoint
+- 🏛️ **Government Impersonation** — CBN, EFCC, FIRS, NIMC, NCC
+- 📱 **Telco Scams** — MTN, Airtel, Glo, 9mobile prize fraud
+- 🆔 **BVN/NIN Fraud** — Bank Verification Number and NIN update scams
+- 💰 **419 Advance Fee Fraud** — Inheritance, next-of-kin, lottery scams
+
+### Africa Phishing IOC Repository
+Community-driven database of confirmed African phishing indicators:
+👉 https://github.com/Abdul-Itas/Africa-Phishing-IOCs
+
+---
+
+## 🔌 Public Threat Intelligence API
+
+Free, no authentication required:
+
+```bash
+# Check a URL or domain
+curl "https://phishradar.onrender.com/api/check?url=cbn-nigeria-verify.com"
+
+# Get community IOC feed
+curl "https://phishradar.onrender.com/api/iocs"
+
+# Get threat feed metadata
+curl "https://phishradar.onrender.com/api/feed"
+```
+
+**Example Response:**
+```json
+{
+  "query": "cbn-nigeria-verify.com",
+  "threat_detected": true,
+  "risk_score": 100,
+  "verdict": "PHISHING",
+  "flags": [
+    "African brand impersonation: Central Bank of Nigeria (cbn.gov.ng)",
+    "Known African phishing domain pattern",
+    "Credential-harvesting keywords: verify, bvn"
+  ],
+  "powered_by": "PhishRadar Africa Threat Intelligence"
+}
+```
+
+Full API docs: https://phishradar.onrender.com/api/docs
+
+---
+
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                  PhishGuard SOC                     │
-├─────────────────┬───────────────────────────────────┤
-│   Frontend      │   Flask Templates (Jinja2)        │
-│   (HTML/CSS/JS) │   Tailwind CSS + Chart.js         │
-├─────────────────┼───────────────────────────────────┤
-│   Backend       │   Flask (Python)                  │
-│                 │   Google OAuth 2.0 + Gmail API    │
-│                 │   IMAP fallback                   │
-├─────────────────┼───────────────────────────────────┤
-│   AI Engine     │   Stage 1: Rule-based pre-filter  │
-│  (2-stage)      │   Stage 2: Claude AI deep analysis│
-├─────────────────┼───────────────────────────────────┤
-│   Alerts        │   Gmail SMTP — HTML email alerts  │
-└─────────────────┴───────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                    PhishRadar SOC                       │
+├─────────────────┬───────────────────────────────────────┤
+│   Frontend      │   Flask Templates (Jinja2)            │
+│                 │   Tailwind CSS + Chart.js             │
+├─────────────────┼───────────────────────────────────────┤
+│   Backend       │   Flask (Python)                      │
+│                 │   Google OAuth 2.0 + Gmail API        │
+│                 │   IMAP fallback                       │
+├─────────────────┼───────────────────────────────────────┤
+│   AI Engine     │   Stage 1: Africa Threat Signatures   │
+│  (2-stage)      │   Stage 2: Groq LLaMA deep analysis  │
+├─────────────────┼───────────────────────────────────────┤
+│   Threat Intel  │   Public API (/api/check, /api/iocs)  │
+│                 │   Community submission portal          │
+│                 │   Weekly phishing report               │
+├─────────────────┼───────────────────────────────────────┤
+│   Alerts        │   Gmail SMTP — HTML email alerts      │
+└─────────────────┴───────────────────────────────────────┘
 ```
 
 ---
@@ -58,33 +121,25 @@ Built for the hackathon in under 5 days, PhishGuard demonstrates how AI can make
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/yourusername/phishguard
-cd phishguard
+git clone https://github.com/Abdul-Itas/phishradar
+cd phishradar
 pip install -r requirements.txt
 ```
 
 ### 2. Set up environment variables
-
-Copy `.env.example` to `.env` and fill in your credentials:
 
 ```bash
 cp .env.example .env
 ```
 
 ```env
-# Gmail IMAP (for fallback scanning)
 EMAIL_USER=your_gmail@gmail.com
-EMAIL_PASS=your_16_char_app_password    # From myaccount.google.com/apppasswords
-
-# Claude AI Engine (optional — falls back to rule-based if empty)
-ANTHROPIC_API_KEY=sk-ant-...            # From console.anthropic.com
-
-# Google OAuth (for Connect Gmail feature)
+EMAIL_PASS=your_16_char_app_password
+GROQ_API_KEY=your_groq_api_key
 GOOGLE_CLIENT_ID=your_client_id
 GOOGLE_CLIENT_SECRET=your_client_secret
-
-# Flask
 FLASK_SECRET=any-random-string
+BASE_URL=https://your-deployed-url.com
 ```
 
 ### 3. Run
@@ -100,64 +155,55 @@ Open `http://127.0.0.1:5000` 🚀
 ## 📁 Project Structure
 
 ```
-phishguard/
-├── app.py                  # Flask routes & OAuth flow
-├── email_scanner.py        # AI engine + Gmail/IMAP fetcher + alerts
+phishradar/
+├── app.py                        # Flask routes, OAuth flow, API endpoints
+├── email_scanner.py              # AI engine + Gmail/IMAP fetcher + alerts
+├── africa_threat_signatures.py   # Africa-specific phishing signatures
+├── report_generator.py           # PDF threat report generator
+├── ioc_submissions.json          # Community IOC database
 ├── requirements.txt
-├── .env.example
 └── templates/
-    ├── dashboard.html      # Main SOC dashboard
-    ├── upload.html         # Manual email upload/paste
-    ├── connect_google.html # OAuth consent page
-    └── simulation.html     # Phishing simulation lab
+    ├── dashboard.html            # Main SOC dashboard
+    ├── upload.html               # Manual email upload/paste
+    ├── connect_google.html       # OAuth consent page
+    ├── simulation.html           # Phishing simulation lab
+    ├── report_threat.html        # Community threat submission portal
+    ├── weekly_report.html        # Weekly African phishing report
+    └── api_docs.html             # API documentation
 ```
 
 ---
 
 ## 🧠 How the AI Engine Works
 
-PhishGuard uses a **2-stage pipeline** for every email:
-
 ```
 Email Input
     │
     ▼
-┌─────────────────────────────┐
-│  Stage 1: Rule-Based Filter │  ← Fast, free, always runs
-│  • Keyword detection        │
-│  • Domain reputation check  │
-│  • Lookalike domain scanner │
-│  • URL analysis             │
-│  • Brand mismatch detection │
-└─────────────┬───────────────┘
-              │ Pre-score + reasons
+┌─────────────────────────────────┐
+│  Stage 1: Africa Threat Engine  │  ← Always runs first
+│  • BVN/NIN fraud patterns       │
+│  • Nigerian bank signatures     │
+│  • CBN/EFCC impersonation       │
+│  • Fintech & telco detection    │
+│  • 419 advance fee patterns     │
+└─────────────┬───────────────────┘
+              │
               ▼
-┌─────────────────────────────┐
-│  Stage 2: Claude AI Engine  │  ← Deep analysis, SOC-level reasoning
-│  • Contextual understanding │
-│  • Natural language verdict │
-│  • Specific indicators list │
-│  • Actionable recommendation│
-└─────────────┬───────────────┘
+┌─────────────────────────────────┐
+│  Stage 2: Groq AI Engine        │  ← Deep contextual analysis
+│  • LLaMA 3.1 SOC-level reasoning│
+│  • Natural language verdict     │
+│  • Specific red flags list      │
+│  • Africa-aware prompt system   │
+└─────────────┬───────────────────┘
               │
               ▼
         Risk Score (0-100)
         Verdict + Explanation
         Auto-alert if score ≥ 70
+        IOC logged if submitted
 ```
-
----
-
-## 🎓 Phishing Simulation Lab
-
-4 interactive training scenarios modeled after real-world attacks:
-
-- 🏦 **Bank Account Alert** — Classic suspension scam (Easy)
-- 💻 **Microsoft Security Alert** — Typosquatted domain attack (Medium)
-- 📦 **Package Delivery Failed** — Fake courier fee harvest (Medium)
-- 💼 **Dream Job Offer** — Employment scam (Hard)
-
-Users hover over red-highlighted text to reveal hidden attack indicators — teaching them to recognize phishing patterns before real attackers exploit them.
 
 ---
 
@@ -165,27 +211,31 @@ Users hover over red-highlighted text to reveal hidden attack indicators — tea
 
 - OAuth tokens are **session-only** and never written to disk
 - Emails are analyzed in memory and **never stored**
-- PhishGuard requests **read-only** Gmail access — cannot send, delete, or modify
-- IMAP app passwords are used instead of real account passwords
+- PhishRadar requests **read-only** Gmail access
+- Community IOC submissions are anonymized before storage
 
 ---
 
-## 🏆 Why PhishGuard Stands Out
+## 🤝 Contributing
 
-1. **Real AI** — Not just keyword matching. Claude understands context like a human analyst
-2. **Real inbox integration** — Actually connects to Gmail via OAuth, not a demo with fake data
-3. **Full alert pipeline** — Detects threat → sends warning email → user is protected
-4. **Education layer** — Simulation mode teaches users, not just protects them
-5. **Production-ready architecture** — 2-stage AI pipeline mirrors real enterprise SOC tools (Proofpoint, Darktrace)
+Found a phishing domain targeting African users?
+
+1. Submit via the portal: https://phishradar.onrender.com/report-threat
+2. Or contribute to the IOC repo: https://github.com/Abdul-Itas/Africa-Phishing-IOCs
 
 ---
 
-## 👥 Team
+## 👤 Author
 
-Built with ❤️ for Cybernation Hackathon — March 2025
+Built by **Abdulmajid Imam**
+- GitHub: https://github.com/Abdul-Itas
+- LinkedIn: https://linkedin.com/in/abdulmajid-imam
+- Live: https://phishradar.onrender.com
 
 ---
 
 ## 📄 License
 
-MIT License — free to use and modify
+MIT License — free to use, share, and build upon with attribution.
+
+⭐ Star this repo to support Africa-focused cybersecurity research!
