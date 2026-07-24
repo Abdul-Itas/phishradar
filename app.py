@@ -664,5 +664,94 @@ def api_iocs():
         'github': 'github.com/Abdul-Itas/phishradar'
     })
 
+
+@app.route('/weekly-report')
+def weekly_report():
+    from flask import Response
+    from datetime import datetime, timezone, timedelta
+
+    # Load all IOCs
+    iocs = load_iocs()
+
+    # Filter to last 7 days
+    now = datetime.now(timezone.utc)
+    week_ago = now - timedelta(days=7)
+
+    weekly_iocs = []
+    for ioc in iocs:
+        try:
+            submitted = datetime.fromisoformat(ioc.get('submitted_at', ''))
+            if submitted >= week_ago:
+                weekly_iocs.append(ioc)
+        except Exception:
+            pass
+
+    # Count by verdict
+    phishing_count = sum(1 for i in weekly_iocs if i.get('verdict') == 'PHISHING')
+    suspicious_count = sum(1 for i in weekly_iocs if i.get('verdict') == 'SUSPICIOUS')
+    safe_count = sum(1 for i in weekly_iocs if i.get('verdict') == 'SAFE')
+
+    # Top targeted brands from flags
+    brand_hits = {}
+    for ioc in weekly_iocs:
+        for flag in ioc.get('flags', []):
+            flag_lower = flag.lower()
+            for brand in ['gtbank', 'zenith', 'access bank', 'first bank', 'uba',
+                          'opay', 'palmpay', 'kuda', 'flutterwave', 'paystack',
+                          'cbn', 'efcc', 'mtn', 'airtel', 'glo']:
+                if brand in flag_lower:
+                    brand_hits[brand.upper()] = brand_hits.get(brand.upper(), 0) + 1
+
+    top_brands = sorted(brand_hits.items(), key=lambda x: x[1], reverse=True)[:5]
+
+    # Top categories from flags
+    category_hits = {
+        'BVN/NIN Fraud': 0,
+        'Bank Impersonation': 0,
+        'Government Impersonation': 0,
+        'Fintech Fraud': 0,
+        'Telco Scam': 0,
+        'Advance Fee (419)': 0,
+        'URL Shortener': 0,
+    }
+    for ioc in weekly_iocs:
+        for flag in ioc.get('flags', []):
+            flag_lower = flag.lower()
+            if 'bvn' in flag_lower or 'nin' in flag_lower:
+                category_hits['BVN/NIN Fraud'] += 1
+            if any(b in flag_lower for b in ['gtbank', 'zenith', 'access', 'firstbank', 'uba', 'fcmb']):
+                category_hits['Bank Impersonation'] += 1
+            if any(g in flag_lower for g in ['cbn', 'efcc', 'firs', 'nimc']):
+                category_hits['Government Impersonation'] += 1
+            if any(f in flag_lower for f in ['opay', 'palmpay', 'kuda', 'flutterwave', 'paystack']):
+                category_hits['Fintech Fraud'] += 1
+            if any(t in flag_lower for t in ['mtn', 'airtel', 'glo', '9mobile']):
+                category_hits['Telco Scam'] += 1
+            if '419' in flag_lower or 'advance fee' in flag_lower or 'next of kin' in flag_lower:
+                category_hits['Advance Fee (419)'] += 1
+            if 'shortener' in flag_lower:
+                category_hits['URL Shortener'] += 1
+
+    top_categories = sorted(
+        [(k, v) for k, v in category_hits.items() if v > 0],
+        key=lambda x: x[1], reverse=True
+    )
+
+    week_start = (now - timedelta(days=7)).strftime('%B %d')
+    week_end = now.strftime('%B %d, %Y')
+
+    return render_template('weekly_report.html',
+                           weekly_iocs=weekly_iocs,
+                           phishing_count=phishing_count,
+                           suspicious_count=suspicious_count,
+                           safe_count=safe_count,
+                           top_brands=top_brands,
+                           top_categories=top_categories,
+                           week_start=week_start,
+                           week_end=week_end,
+                           generated_at=now.strftime('%Y-%m-%d %H:%M UTC'),
+                           total=len(weekly_iocs)
+                           )
+
 if __name__ == '__main__':
     app.run(debug=True)
