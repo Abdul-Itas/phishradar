@@ -613,6 +613,14 @@ def report_threat():
                 )
 
                 # Save to IOC file
+                # Auto-verify based on risk score threshold
+                if final_score >= 70:
+                    verified_status = 'confirmed'
+                elif final_score >= 40:
+                    verified_status = 'unverified'
+                else:
+                    verified_status = 'rejected'
+
                 ioc_entry = {
                     'id': f"IOC-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
                     'url': url,
@@ -624,7 +632,9 @@ def report_threat():
                     'verdict': verdict,
                     'flags': flags,
                     'submitted_at': datetime.now(timezone.utc).isoformat(),
-                    'source': 'community_submission'
+                    'source': 'community_submission',
+                    'verified': verified_status,
+                    'confidence': 'high' if final_score >= 70 else ('medium' if final_score >= 40 else 'low')
                 }
                 save_ioc(ioc_entry)
 
@@ -643,19 +653,26 @@ def api_iocs():
     from flask import jsonify
     iocs = load_iocs()
 
-    # Only return confirmed threats (score >= 40)
-    threats = [
-        {
+    # Allow filtering by verified status via query param
+    filter_verified = request.args.get('verified', None)
+
+    threats = []
+    for i in iocs:
+        if i.get('risk_score', 0) < 40:
+            continue
+        if filter_verified and i.get('verified') != filter_verified:
+            continue
+        threats.append({
             'id': i.get('id'),
             'domain': i.get('domain'),
             'verdict': i.get('verdict'),
             'risk_score': i.get('risk_score'),
+            'confidence': i.get('confidence', 'medium'),
+            'verified': i.get('verified', 'unverified'),
             'flags': i.get('flags', []),
             'submitted_at': i.get('submitted_at'),
             'source': i.get('source')
-        }
-        for i in iocs if i.get('risk_score', 0) >= 40
-    ]
+        })
 
     return jsonify({
         'total': len(threats),
