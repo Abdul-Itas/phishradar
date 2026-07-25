@@ -772,7 +772,7 @@
             </div>
             <div>
                 <div class="logo-text">Phish<span>Radar</span></div>
-                <div class="logo-sub">SECURITY OPERATIONS CENTER &nbsp;|&nbsp; THREAT INTELLIGENCE PLATFORM</div>
+                <div class="logo-sub">THREAT INTELLIGENCE PLATFORM</div>
             </div>
         </div>
 
@@ -804,25 +804,37 @@
         {% endif %}
     {% endfor %}
 
-    <!-- ═══════════════ METRIC ROW ═══════════════ -->
-    <div class="metric-grid" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:16px; margin-bottom:24px;">
-        <div class="metric-card blue">
-            <div class="metric-label">Emails Scanned</div>
-            <div class="metric-value">{{ emails|length }}</div>
-        </div>
-        <div class="metric-card red">
-            <div class="metric-label">Phishing Detected</div>
-            <div class="metric-value">{{ counts.phishing }}</div>
-        </div>
-        <div class="metric-card yellow">
-            <div class="metric-label">Suspicious</div>
-            <div class="metric-value">{{ counts.suspicious }}</div>
-        </div>
-        <div class="metric-card green">
-            <div class="metric-label">Safe</div>
-            <div class="metric-value">{{ counts.safe }}</div>
-        </div>
+    {% if not connected_email %}
+<div style="background:rgba(0,229,255,0.05); border:1px solid rgba(0,229,255,0.15); border-radius:8px; padding:12px 20px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+    <div style="font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--accent-cyan); letter-spacing:0.12em;">
+        ⬡ PLATFORM INTELLIGENCE — CUMULATIVE STATS ACROSS ALL SCANS
     </div>
+    {% if analytics.last_updated %}
+    <div style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--text-secondary); letter-spacing:0.1em;">
+        Last updated: {{ analytics.last_updated[:10] }}
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+    <div class="metric-grid" style="display:grid; grid-template-columns: repeat(4, 1fr); gap:16px; margin-bottom:24px;">
+    <div class="metric-card blue">
+        <div class="metric-label">{{ 'Emails Scanned' if connected_email else 'Total Analyses' }}</div>
+        <div class="metric-value">{{ emails|length if connected_email else analytics.total_scans }}</div>
+    </div>
+    <div class="metric-card red">
+        <div class="metric-label">Phishing Detected</div>
+        <div class="metric-value">{{ counts.phishing if connected_email else analytics.total_phishing }}</div>
+    </div>
+    <div class="metric-card yellow">
+        <div class="metric-label">Suspicious</div>
+        <div class="metric-value">{{ counts.suspicious if connected_email else analytics.total_suspicious }}</div>
+    </div>
+    <div class="metric-card green">
+        <div class="metric-label">Safe</div>
+        <div class="metric-value">{{ counts.safe if connected_email else analytics.total_safe }}</div>
+    </div>
+</div>
 
     <!-- ═══════════════ MAIN GRID ═══════════════ -->
     <div style="display:grid; grid-template-columns: 300px 1fr; gap:20px; align-items:start;" class="main-grid">
@@ -839,6 +851,94 @@
                     <canvas id="threatChart" height="220"></canvas>
                 </div>
             </div>
+
+            <!-- Platform Intelligence Panel (shown when logged out) -->
+{% if not connected_email %}
+<div class="panel">
+    <div class="panel-header">
+        <span class="panel-title">⬡ Platform Intelligence</span>
+        <span style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--accent-green); letter-spacing:0.1em;">LIVE</span>
+    </div>
+    <div style="padding:16px; display:flex; flex-direction:column; gap:10px;">
+
+        <!-- Version -->
+        <div style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--text-secondary); letter-spacing:0.12em; text-align:right;">
+            PhishRadar v2.0 — Africa Threat Intelligence
+        </div>
+
+        <!-- IOC Count -->
+        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,229,255,0.04); border:1px solid rgba(0,229,255,0.12); border-radius:6px; padding:10px 14px;">
+            <span style="font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--text-secondary); letter-spacing:0.1em;">Known IOCs</span>
+            <span style="font-family:'Rajdhani'; font-size:1.3rem; font-weight:700; color:var(--accent-cyan);">{{ analytics.total_phishing + analytics.total_suspicious }}</span>
+        </div>
+
+        <!-- Last threat -->
+        {% if analytics.recent_threats %}
+        <div style="background:rgba(255,45,85,0.06); border:1px solid rgba(255,45,85,0.15); border-radius:6px; padding:10px 14px;">
+            <div style="font-family:'Share Tech Mono'; font-size:0.58rem; color:var(--text-secondary); letter-spacing:0.12em; margin-bottom:6px;">LAST THREAT DETECTED</div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-family:'Rajdhani'; font-size:0.9rem; font-weight:600; color:var(--accent-red);">
+                    {{ analytics.recent_threats[0].verdict }}
+                </span>
+                <span style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--text-secondary);">
+                    Score: {{ analytics.recent_threats[0].risk_score }}%
+                </span>
+            </div>
+            <div style="font-family:'Share Tech Mono'; font-size:0.58rem; color:var(--text-secondary); margin-top:4px;">
+                {{ analytics.recent_threats[0].scanned_at[:10] }} UTC
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Top targeted brands -->
+        {% if analytics.top_targeted_brands %}
+        <div style="background:rgba(0,0,0,0.2); border-radius:6px; padding:10px 14px;">
+            <div style="font-family:'Share Tech Mono'; font-size:0.58rem; color:var(--text-secondary); letter-spacing:0.12em; margin-bottom:8px;">TOP TARGETED BRANDS</div>
+            {% for brand in analytics.top_targeted_brands[:3] %}
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                <span style="font-family:'Share Tech Mono'; font-size:0.62rem; color:var(--accent-red);">{{ brand.brand }}</span>
+                <span style="font-family:'Rajdhani'; font-size:0.85rem; font-weight:700; color:var(--text-secondary);">{{ brand.count }}x</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Threat distribution -->
+        <div style="background:rgba(0,0,0,0.2); border-radius:6px; padding:10px 14px;">
+            <div style="font-family:'Share Tech Mono'; font-size:0.58rem; color:var(--text-secondary); letter-spacing:0.12em; margin-bottom:8px;">THREAT DISTRIBUTION</div>
+            {% set total = analytics.total_scans if analytics.total_scans > 0 else 1 %}
+            <div style="margin-bottom:6px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                    <span style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--accent-red);">Phishing</span>
+                    <span style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--accent-red);">{{ ((analytics.total_phishing / total) * 100) | int }}%</span>
+                </div>
+                <div style="height:4px; background:var(--border-color); border-radius:2px;">
+                    <div style="width:{{ ((analytics.total_phishing / total) * 100) | int }}%; height:100%; background:var(--accent-red); border-radius:2px;"></div>
+                </div>
+            </div>
+            <div style="margin-bottom:6px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                    <span style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--accent-yellow);">Suspicious</span>
+                    <span style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--accent-yellow);">{{ ((analytics.total_suspicious / total) * 100) | int }}%</span>
+                </div>
+                <div style="height:4px; background:var(--border-color); border-radius:2px;">
+                    <div style="width:{{ ((analytics.total_suspicious / total) * 100) | int }}%; height:100%; background:var(--accent-yellow); border-radius:2px;"></div>
+                </div>
+            </div>
+            <div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                    <span style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--accent-green);">Safe</span>
+                    <span style="font-family:'Share Tech Mono'; font-size:0.6rem; color:var(--accent-green);">{{ ((analytics.total_safe / total) * 100) | int }}%</span>
+                </div>
+                <div style="height:4px; background:var(--border-color); border-radius:2px;">
+                    <div style="width:{{ ((analytics.total_safe / total) * 100) | int }}%; height:100%; background:var(--accent-green); border-radius:2px;"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endif %}
 
             <!-- DEFCON Panel -->
             <div class="panel">
@@ -1150,9 +1250,45 @@
                         <tr>
                             <td colspan="4">
                                 <div class="empty-state">
-                                    <div style="font-size:2rem; margin-bottom:12px; opacity:0.3;">⬡</div>
-                                    <div>NO EMAILS FOUND — CONNECT INBOX OR UPLOAD EMAIL TO BEGIN SCAN</div>
-                                </div>
+
+    {% if analytics.recent_threats %}
+    <div style="text-align:left; max-width:600px; margin:0 auto; margin-bottom:20px;">
+        <div style="font-family:'Share Tech Mono'; font-size:0.65rem; color:var(--accent-cyan); letter-spacing:0.15em; margin-bottom:12px; text-align:center;">
+            ⬡ RECENT PLATFORM DETECTIONS
+        </div>
+        {% for threat in analytics.recent_threats[:5] %}
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 16px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:6px; margin-bottom:8px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Rajdhani'; font-size:0.85rem; font-weight:700;
+                    {% if threat.risk_score >= 70 %}color:var(--accent-red); border:2px solid var(--accent-red); background:rgba(255,45,85,0.08);
+                    {% elif threat.risk_score >= 40 %}color:var(--accent-yellow); border:2px solid var(--accent-yellow); background:rgba(255,215,0,0.08);
+                    {% else %}color:var(--accent-green); border:2px solid var(--accent-green); background:rgba(0,255,136,0.08);{% endif %}">
+                    {{ threat.risk_score }}
+                </div>
+                <div>
+                    <div style="font-family:'Rajdhani'; font-size:0.9rem; font-weight:600;
+                        {% if threat.risk_score >= 70 %}color:var(--accent-red);
+                        {% elif threat.risk_score >= 40 %}color:var(--accent-yellow);
+                        {% else %}color:var(--accent-green);{% endif %}">
+                        {{ threat.verdict }}
+                    </div>
+                    <div style="font-family:'Share Tech Mono'; font-size:0.58rem; color:var(--text-secondary);">
+                        {{ threat.source | replace('_', ' ') | upper }} — {{ threat.engine | upper }}
+                    </div>
+                </div>
+            </div>
+            <div style="font-family:'Share Tech Mono'; font-size:0.58rem; color:var(--text-secondary); text-align:right;">
+                {{ threat.scanned_at[:10] }}<br>{{ threat.scanned_at[11:16] }} UTC
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div style="font-size:2rem; margin-bottom:12px; opacity:0.3;">⬡</div>
+    <div style="margin-bottom:20px;">NO INBOX CONNECTED — CONNECT GMAIL OR UPLOAD EMAIL TO BEGIN SCAN</div>
+
+</div>
                             </td>
                         </tr>
                     {% endif %}
