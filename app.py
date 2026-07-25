@@ -102,7 +102,13 @@ def dashboard():
         if new_alerted:
             session['alerted_ids'] = list(alerted)
     connected_email = session.get('user_email', None)
-    resp = make_response(render_template('dashboard.html', emails=emails, connected_email=connected_email))
+    # Load platform analytics for pre-login display
+    analytics = load_analytics()
+    resp = make_response(render_template('dashboard.html',
+                                         emails=emails,
+                                         connected_email=connected_email,
+                                         analytics=analytics
+                                         ))
     if connected_email:
         resp.headers['Cache-Control'] = 'private, max-age=300'
     else:
@@ -128,8 +134,23 @@ def upload():
         if raw_text and not error:
             try:
                 parsed = parse_raw_email(raw_text)
-                score, status, explanation, engine = analyze_email(parsed["subject"], parsed["sender"], parsed["body"])
-                result = {"subject": parsed["subject"], "sender": parsed["sender"], "risk_score": score, "status": status, "explanation": explanation, "engine": engine}
+                score, status, explanation, engine = analyze_email(
+                    parsed["subject"], parsed["sender"], parsed["body"]
+                )
+                result = {
+                    "subject": parsed["subject"],
+                    "sender": parsed["sender"],
+                    "risk_score": score,
+                    "status": status,
+                    "explanation": explanation,
+                    "engine": engine
+                }
+                # Save anonymized metadata
+                try:
+                    save_scan_metadata(score, status, explanation, engine, source='manual_upload')
+                    print(f"[PhishRadar] Analytics saved — score:{score} verdict:{status}")
+                except Exception as e:
+                    print(f"[PhishRadar] Analytics error: {e}")
             except Exception as e:
                 error = f"Analysis failed: {e}"
     return render_template('upload.html', result=result, error=error)
@@ -498,6 +519,78 @@ def save_ioc(ioc: dict):
     with open(IOC_FILE, 'w') as f:
         json.dump(iocs, f, indent=2)
 
+# ── Platform Analytics Storage ────────────────────────────────────────────────
+ANALYTICS_FILE = 'platform_analytics.json'
+
+def load_analytics():
+    """Load platform analytics data."""
+    if not os.path.exists(ANALYTICS_FILE):
+        return {
+            'total_scans': 0,
+            'total_phishing': 0,
+            'total_suspicious': 0,
+            'total_safe': 0,
+            'recent_threats': [],
+            'brand_hits': {},
+            'last_updated': None
+        }
+    try:
+        with open(ANALYTICS_FILE, 'r') as f:
+            return json.load(f)
+    except Exception:
+        return {
+            'total_scans': 0,
+            'total_phishing': 0,
+            'total_suspicious': 0,
+            'total_safe': 0,
+            'recent_threats': [],
+            'brand_hits': {},
+            'last_updated': None
+        }
+
+def save_scan_metadata(risk_score, verdict, explanation, engine, source='gmail'):
+    """Save anonymized scan metadata — no personal content stored."""
+    from datetime import datetime, timezone
+    analytics = load_analytics()
+
+    # Update counters
+    analytics['total_scans'] += 1
+    if verdict == 'PHISHING DETECTED':
+        analytics['total_phishing'] += 1
+    elif verdict == 'SUSPICIOUS':
+        analytics['total_suspicious'] += 1
+    else:
+        analytics['total_safe'] += 1
+
+    analytics['last_updated'] = datetime.now(timezone.utc).isoformat()
+
+    # Extract brand hits from explanation
+    BRANDS = [
+        'gtbank', 'zenith', 'access bank', 'first bank', 'uba',
+        'opay', 'palmpay', 'kuda', 'flutterwave', 'paystack',
+        'cbn', 'efcc', 'mtn', 'airtel', 'glo', 'moniepoint'
+    ]
+    explanation_lower = explanation.lower()
+    for brand in BRANDS:
+        if brand in explanation_lower:
+            analytics['brand_hits'][brand.upper()] = \
+                analytics['brand_hits'].get(brand.upper(), 0) + 1
+
+    # Store recent threats (last 10 only, anonymized)
+    if risk_score >= 40:
+        threat_entry = {
+            'risk_score': risk_score,
+            'verdict': verdict,
+            'engine': engine,
+            'source': source,
+            'scanned_at': datetime.now(timezone.utc).isoformat()
+        }
+        analytics['recent_threats'].insert(0, threat_entry)
+        analytics['recent_threats'] = analytics['recent_threats'][:10]
+
+    with open(ANALYTICS_FILE, 'w') as f:
+        json.dump(analytics, f, indent=2)
+
 
 # ── Submission portal route ───────────────────────────────────────────────────
 @app.route('/report-threat', methods=['GET', 'POST'])
@@ -769,6 +862,26 @@ def weekly_report():
                            generated_at=now.strftime('%Y-%m-%d %H:%M UTC'),
                            total=len(weekly_iocs)
                            )
+
+@app.route('/api/analytics')
+def api_analytics():
+    from flask import jsonify
+    analytics = load_analytics()
+    top_brands = sorted(
+        analytics.get('brand_hits', {}).items(),
+        key=lambda x: x[1], reverse=True
+    )[:5]
+    return jsonify({
+        'total_scans': analytics.get('total_scans', 0),
+        'total_phishing': analytics.get('total_phishing', 0),
+        'total_suspicious': analytics.get('total_suspicious', 0),
+        'total_safe': analytics.get('total_safe', 0),
+        'top_targeted_brands': [
+            {'brand': b, 'count': c} for b, c in top_brands
+        ],
+        'recent_threats': analytics.get('recent_threats', [])[:5],
+        'powered_by': 'PhishRadar Africa Threat Intelligence'
+    })
 
 if __name__ == '__main__':
     app.run(debug=True)
